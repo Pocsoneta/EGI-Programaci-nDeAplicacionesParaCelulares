@@ -12,6 +12,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'codigo_test_helper.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:flutter_application_1/main.dart';
@@ -57,6 +59,7 @@ Future<void> crearCuenta(
 
   await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
   await tester.pumpAndSettle();
+  await cerrarCodigoRecuperacion(tester);
   await esperarBD(tester);
 }
 

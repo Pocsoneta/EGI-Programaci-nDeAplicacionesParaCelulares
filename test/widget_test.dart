@@ -11,6 +11,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'codigo_test_helper.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:flutter_application_1/main.dart';
@@ -109,6 +111,7 @@ void main() {
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
       await tester.pumpAndSettle();
+      await cerrarCodigoRecuperacion(tester);
       await esperarBD(tester);
 
       // La cuenta nueva arranca con la base de datos vacia.
@@ -118,6 +121,8 @@ void main() {
       // 3. SE AGREGA UN GASTO Y APARECE EN EL INICIO
       // ---------------------------------------------------------------
       await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nuevo gasto'));
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
@@ -129,7 +134,7 @@ void main() {
 
       // El resumen del mes siempre esta visible: confirma que el gasto se
       // guardo en SQLite y se reflejo en la interfaz.
-      expect(find.text('\$1500'), findsWidgets);
+      expect(find.text('\$1.500'), findsWidgets);
 
       // El item del gasto queda por debajo de la tarjeta principal, asi que
       // hay que desplazar la lista para encontrarlo.
@@ -162,6 +167,7 @@ void main() {
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
       await tester.pumpAndSettle();
+      await cerrarCodigoRecuperacion(tester);
       await esperarBD(tester);
 
       // Bruno NO ve el gasto de Ana: cada cuenta tiene su propia base.

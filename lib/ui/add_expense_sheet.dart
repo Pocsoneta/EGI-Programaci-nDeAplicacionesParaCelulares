@@ -124,7 +124,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
       SnackBar(
         content: Text(_esEdicion
             ? 'Gasto actualizado'
-            : 'Gasto de \$${amount.toStringAsFixed(2)} agregado'),
+            : 'Gasto de ${formatearMoneda(amount)} agregado'),
       ),
     );
   }

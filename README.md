@@ -59,6 +59,12 @@ Las cuentas de usuario siempre se guardan en SQLite, aunque esté activo el modo
   cambiando mayúsculas/minúsculas), ni tomar un correo ya usado desde el perfil.
 - **Sesión persistente**: la app recuerda al último usuario autenticado al
   reiniciar. Al cerrar sesión se borra ese registro y vuelve a pedir login.
+- **Recuperación de contraseña**: cada cuenta tiene un código de recuperación
+  de 10 caracteres que se muestra **una sola vez** (al crear la cuenta o desde
+  *Mi perfil*). Solo se guarda su hash. Con el correo, el código y una nueva
+  contraseña, "Olvidé mi contraseña" en el login la restablece. El código es de
+  uso único. Si se pierde, se puede generar uno nuevo desde *Mi perfil*, pero
+  las cuentas sin código no se pueden recuperar.
 
 ## Notificaciones
 
@@ -114,8 +120,8 @@ menú— se abre la ficha con cada integrante:
 - **Introducción**: al abrir la app por primera vez se muestran tres
   pantallas de bienvenida (se pueden omitir). No vuelven a aparecer.
 - **Barra inferior**: Inicio, Mes, Grupo y Ahorro, con el botón **+** en el
-  centro para cargar gastos.
-- **Hogar** (servicios del hogar): se abre desde el botón "Hogar" de Inicio.
+  centro. Al tocarlo se abre un menú con **Nuevo gasto**, **Nuevo ingreso** y
+  **Servicios del hogar**.
 - **Perfil** (avatar de la cabecera): datos de la cuenta, crear otra cuenta,
   iniciar sesión con otra cuenta y cerrar sesión.
 

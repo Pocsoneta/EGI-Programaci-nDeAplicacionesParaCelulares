@@ -1,3 +1,4 @@
+import 'codigo_recuperacion.dart';
 import 'contrasena.dart';
 import 'dbhelper.dart';
 import '../model/model.dart';
@@ -113,6 +114,50 @@ class UsuarioRepository {
   Future<String> _passwordActual(int id) async {
     final Usuario? actual = await getUsuario(id);
     return actual?.password ?? '';
+  }
+
+  // Genera un codigo de recuperacion nuevo para la cuenta (invalida el
+  // anterior) y lo devuelve en claro: es la unica vez que se puede ver.
+  Future<String> generarNuevoCodigo(int id, String email) async {
+    final String codigo = generarCodigoRecuperacion();
+    await DbHelper().setCodigoRecuperacion(
+      id,
+      hashCodigoRecuperacion(email, codigo),
+    );
+    return codigo;
+  }
+
+  // Indica si la cuenta ya tiene un codigo de recuperacion generado.
+  Future<bool> tieneCodigoRecuperacion(int id) async {
+    return await DbHelper().getCodigoRecuperacion(id) != null;
+  }
+
+  // Restablece la contrasena con el codigo de recuperacion. Devuelve false si
+  // el correo, el codigo o la cuenta no coinciden. El codigo es de uso unico:
+  // al usarlo se borra y la cuenta queda sin codigo hasta generar otro.
+  Future<bool> restablecerContrasena({
+    required String email,
+    required String codigo,
+    required String nuevaPassword,
+  }) async {
+    final Usuario? usuario = await getUsuarioPorEmail(email.trim());
+    final int? id = usuario?.id;
+    if (usuario == null || id == null) {
+      return false;
+    }
+    final String? hashGuardado = await DbHelper().getCodigoRecuperacion(id);
+    if (hashGuardado == null ||
+        hashGuardado != hashCodigoRecuperacion(usuario.email, codigo)) {
+      return false;
+    }
+    await DbHelper().updateUser(Usuario.withId(
+      id,
+      usuario.nombre,
+      usuario.email,
+      hashContrasena(usuario.email, nuevaPassword),
+    ));
+    await DbHelper().setCodigoRecuperacion(id, null);
+    return true;
   }
 
   // Guarda la contrasena de una cuenta vieja (que estaba en texto plano)

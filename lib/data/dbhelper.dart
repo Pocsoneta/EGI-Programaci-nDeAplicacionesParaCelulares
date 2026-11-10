@@ -55,6 +55,14 @@ class DbHelper {
         'nombre TEXT, '
         'email TEXT, '
         'password TEXT);');
+    // Hash del codigo de recuperacion. Las bases creadas antes no tienen la
+    // columna: el ALTER la agrega y, si ya existe, falla y se ignora.
+    try {
+      await db.execute(
+          'ALTER TABLE usuarios ADD COLUMN codigoRecuperacion TEXT');
+    } catch (_) {
+      // Nada que migrar.
+    }
     // Correo unico (sin distinguir mayusculas): dos cuentas no pueden
     // compartir email. Si una base heredada ya tiene duplicados, el indice
     // no se puede crear y se ignora a proposito para no bloquear el arranque.
@@ -378,6 +386,32 @@ class DbHelper {
   }
 
   // READ: obtiene un usuario por su id.
+  // Hash del codigo de recuperacion de una cuenta (null si no tiene uno).
+  Future<String?> getCodigoRecuperacion(int id) async {
+    final Database base = await dbUsuarios;
+    final List<Map<String, dynamic>> filas = await base.query(
+      'usuarios',
+      columns: ['codigoRecuperacion'],
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (filas.isEmpty) {
+      return null;
+    }
+    return filas.first['codigoRecuperacion'] as String?;
+  }
+
+  // Guarda (o borra, con null) el hash del codigo de recuperacion.
+  Future<void> setCodigoRecuperacion(int id, String? hash) async {
+    final Database base = await dbUsuarios;
+    await base.update(
+      'usuarios',
+      {'codigoRecuperacion': hash},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<Usuario?> getUser(int id) async {
     final Database base = await dbUsuarios;
     final List<Map<String, dynamic>> filas =

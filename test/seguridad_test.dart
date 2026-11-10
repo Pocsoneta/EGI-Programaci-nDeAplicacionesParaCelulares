@@ -14,6 +14,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'codigo_test_helper.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:flutter_application_1/main.dart';
@@ -65,6 +67,7 @@ Future<void> crearCuenta(
 
   await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
   await tester.pumpAndSettle();
+  await cerrarCodigoRecuperacion(tester);
   await esperarBD(tester);
 }
 
@@ -118,6 +121,7 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(2), '123456');
       await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
       await tester.pumpAndSettle();
+      await cerrarCodigoRecuperacion(tester);
       await esperarBD(tester);
 
       expect(find.text('Ya existe una cuenta con ese correo'), findsOneWidget);
@@ -132,6 +136,7 @@ void main() {
           find.byType(TextFormField).at(1), 'REPETIDA@test.com');
       await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
       await tester.pumpAndSettle();
+      await cerrarCodigoRecuperacion(tester);
       await esperarBD(tester);
 
       expect(find.text('Ya existe una cuenta con ese correo'), findsOneWidget);
@@ -290,6 +295,7 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(2), '123456');
       await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
       await tester.pumpAndSettle();
+      await cerrarCodigoRecuperacion(tester);
       await esperarBD(tester);
 
       // Bruno edita su perfil y pone el correo de Ana.

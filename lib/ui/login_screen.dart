@@ -4,6 +4,8 @@ import '../data/dbhelper.dart';
 import '../model/model.dart';
 import '../data/usuario_repository.dart';
 import 'auth_widgets.dart';
+import 'recuperar_contrasena_screen.dart';
+import 'usuario_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -56,6 +58,17 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     // Se retorna el id del usuario autenticado; la app recarga sus datos.
     Navigator.of(context).pop(usuario.id ?? 0);
+  }
+
+  // Abre el registro encima de este login. Si se crea una cuenta, el id se
+  // reenvia hacia arriba para que la pantalla principal cargue esa cuenta.
+  Future<void> _irARegistro() async {
+    final int? userId = await Navigator.of(context).push<int>(
+      MaterialPageRoute(builder: (context) => const UsuarioScreen()),
+    );
+    if (userId != null && mounted) {
+      Navigator.of(context).pop(userId);
+    }
   }
 
   @override
@@ -129,6 +142,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
                         child: const Text('Cancelar'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const RecuperarContrasenaScreen(),
+                          ),
+                        ),
+                        child: const Text('Olvidé mi contraseña'),
+                      ),
+                      TextButton(
+                        onPressed: _irARegistro,
+                        child: const Text('¿No tenés una cuenta? Registrate'),
                       ),
                     ],
                   ),

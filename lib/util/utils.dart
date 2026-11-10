@@ -177,9 +177,93 @@ double progresoMeta(MetaAhorro meta) {
 
 /// Formatea un monto numerico a su representacion monetaria.
 /// Los negativos se escriben con el signo adelante: -$500 (no $-500).
+/// Formatea un monto para mostrarlo: sin decimales y con punto como separador
+/// de miles (ej. 1500 -> "$1.500", -20000 -> "-$20.000").
+/// Solo para mostrar: los campos de edicion usan numeros crudos para poder
+/// leerlos de vuelta.
 String formatearMoneda(double monto) {
-  final String valor = monto.abs().toStringAsFixed(0);
+  final String valor = _separarMiles(monto.abs().round().toString());
   return monto < 0 ? '-\$$valor' : '\$$valor';
+}
+
+String _separarMiles(String digitos) {
+  final StringBuffer resultado = StringBuffer();
+  for (int i = 0; i < digitos.length; i++) {
+    final int restantes = digitos.length - i;
+    if (i > 0 && restantes % 3 == 0) {
+      resultado.write('.');
+    }
+    resultado.write(digitos[i]);
+  }
+  return resultado.toString();
+}
+
+enum EstadoPlanAhorro { enCurso, completada, vencida }
+
+/// Cuanto hay que ahorrar cada semana y cada mes para llegar a una meta en
+/// su fecha. Los periodos se redondean hacia arriba: nunca se subestima lo
+/// que falta por aportar.
+class PlanAhorro {
+  final EstadoPlanAhorro estado;
+  final double faltante;
+  final int semanas;
+  final int meses;
+  final double porSemana;
+  final double porMes;
+
+  const PlanAhorro({
+    required this.estado,
+    required this.faltante,
+    required this.semanas,
+    required this.meses,
+    required this.porSemana,
+    required this.porMes,
+  });
+}
+
+/// Calcula el plan de ahorro de una meta a partir de su importe y su fecha
+/// objetivo. Devuelve null si la fecha no es valida.
+PlanAhorro? calcularPlanAhorro(MetaAhorro meta, DateTime hoy) {
+  final DateTime? limite = DateTime.tryParse(meta.fechaObjetivo);
+  if (limite == null) {
+    return null;
+  }
+  final double faltante =
+      meta.montoObjetivo > meta.montoAhorrado ? meta.montoObjetivo - meta.montoAhorrado : 0;
+  if (faltante <= 0) {
+    return const PlanAhorro(
+      estado: EstadoPlanAhorro.completada,
+      faltante: 0,
+      semanas: 0,
+      meses: 0,
+      porSemana: 0,
+      porMes: 0,
+    );
+  }
+  // Diferencia de dias comparando solo la fecha (sin la hora).
+  final int dias = DateTime(limite.year, limite.month, limite.day)
+      .difference(DateTime(hoy.year, hoy.month, hoy.day))
+      .inDays;
+  if (dias <= 0) {
+    return PlanAhorro(
+      estado: EstadoPlanAhorro.vencida,
+      faltante: faltante,
+      semanas: 0,
+      meses: 0,
+      porSemana: 0,
+      porMes: 0,
+    );
+  }
+  final int semanas = (dias / 7).ceil();
+  final int meses = (dias / 30).ceil();
+  return PlanAhorro(
+    estado: EstadoPlanAhorro.enCurso,
+    faltante: faltante,
+    semanas: semanas,
+    meses: meses,
+    porSemana: faltante / semanas,
+    porMes: faltante / meses,
+  );
 }
 
 /// Formatea una fecha guardada como String en formato YYYY-MM-DD a una forma legible (DD/MM/AAAA).

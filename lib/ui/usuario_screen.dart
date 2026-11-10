@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../data/usuario_repository.dart';
 import 'auth_widgets.dart';
+import 'codigo_recuperacion_dialog.dart';
+import 'login_screen.dart';
 
 class UsuarioScreen extends StatefulWidget {
   const UsuarioScreen({super.key});
@@ -55,6 +57,18 @@ class _UsuarioScreenState extends State<UsuarioScreen> {
     if (!mounted) {
       return;
     }
+    // Codigo de recuperacion: se muestra una sola vez, antes de entrar.
+    final String codigo = await UsuarioRepository().generarNuevoCodigo(
+      userId,
+      _emailController.text.trim(),
+    );
+    if (!mounted) {
+      return;
+    }
+    await mostrarCodigoRecuperacion(context, codigo);
+    if (!mounted) {
+      return;
+    }
     // La sesion queda guardada en disco: al volver a abrir la app el usuario
     // no tiene que loguearse de nuevo.
     await UsuarioRepository().guardarSesion(userId);
@@ -63,6 +77,17 @@ class _UsuarioScreenState extends State<UsuarioScreen> {
     }
     // Se retorna el id del usuario creado; la app debe recargar sus datos.
     Navigator.of(context).pop(userId);
+  }
+
+  // Abre el login encima de este registro. Si entra con una cuenta, el id se
+  // reenvia hacia arriba para que la pantalla principal cargue esa cuenta.
+  Future<void> _irAIniciarSesion() async {
+    final int? userId = await Navigator.of(context).push<int>(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
+    if (userId != null && mounted) {
+      Navigator.of(context).pop(userId);
+    }
   }
 
   @override
@@ -147,6 +172,11 @@ class _UsuarioScreenState extends State<UsuarioScreen> {
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
                         child: const Text('Cancelar'),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _irAIniciarSesion,
+                        child: const Text('¿Ya tenés una cuenta? Iniciá sesión'),
                       ),
                     ],
                   ),

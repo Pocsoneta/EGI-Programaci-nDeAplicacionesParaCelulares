@@ -9,6 +9,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'codigo_test_helper.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:flutter_application_1/data/dbhelper.dart';
@@ -72,11 +74,12 @@ void main() {
     await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
     await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
     await tester.pumpAndSettle();
+    await cerrarCodigoRecuperacion(tester);
     await esperarHasta(tester, find.text('Inicio'));
     await tester.pumpAndSettle();
     await esperarBD(tester);
 
-    // Recorrido por la barra inferior y por Hogar (desde Inicio).
+    // Recorrido por la barra inferior y por Servicios del hogar (menu del +).
     for (final String seccion in <String>['Mes', 'Grupo', 'Ahorro', 'Inicio']) {
       await tester.tap(find.text(seccion));
       await tester.pumpAndSettle();
@@ -86,12 +89,9 @@ void main() {
     await tester.tap(find.text('Inicio'));
     await tester.pumpAndSettle();
     await esperarBD(tester);
-    await tester.scrollUntilVisible(
-      find.widgetWithText(OutlinedButton, 'Hogar'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Hogar'));
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Servicios del hogar'));
     await tester.pumpAndSettle();
     await esperarBD(tester);
     tester.state<NavigatorState>(find.byType(Navigator).first).pop();

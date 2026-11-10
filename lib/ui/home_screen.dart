@@ -6,6 +6,7 @@ import '../data/meta_ahorro_repository.dart';
 import '../model/model.dart';
 import '../util/utils.dart';
 import 'add_expense_sheet.dart';
+import 'dialogo_ingreso.dart';
 
 // Datos que consume la pantalla de inicio, cargados todos juntos desde los
 // repositorios para mostrar un unico estado coherente.
@@ -18,10 +19,7 @@ class _DatosInicio {
 }
 
 class HomeScreen extends StatefulWidget {
-  // Abre la pantalla de servicios del hogar (la maneja la pantalla principal).
-  final Future<void> Function() onAbrirHogar;
-
-  const HomeScreen({super.key, required this.onAbrirHogar});
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -63,31 +61,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return _DatosInicio(gastos, ingresos, metas);
   }
 
-  // Abre un dialogo para cargar un ingreso nuevo.
-  // Abre los servicios del hogar y, al volver, recarga el inicio porque pagar
-  // un servicio crea o elimina un gasto.
-  Future<void> _abrirHogar() async {
-    await widget.onAbrirHogar();
-    if (mounted) {
-      _recargar();
-    }
-  }
-
-  Future<void> _agregarIngreso() async {
-    final bool? guardado = await showDialog<bool>(
-      context: context,
-      builder: (context) => const _DialogoIngreso(),
-    );
-    if (guardado == true && mounted) {
-      _recargar();
-    }
-  }
-
   // Abre el mismo dialogo en modo edicion sobre un ingreso existente.
   Future<void> _editarIngreso(Ingreso ingreso) async {
     final bool? guardado = await showDialog<bool>(
       context: context,
-      builder: (context) => _DialogoIngreso(ingreso: ingreso),
+      builder: (context) => DialogoIngreso(ingreso: ingreso),
     );
     if (guardado == true && mounted) {
       _recargar();
@@ -322,27 +300,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
         const SizedBox(height: 16),
-
-        // Alta de ingresos y acceso a Hogar (antes era una pestana de la barra).
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _agregarIngreso,
-                icon: const Icon(Icons.add_circle_outline),
-                label: const Text('Agregar ingreso'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _abrirHogar,
-                icon: const Icon(Icons.cottage_outlined),
-                label: const Text('Hogar'),
-              ),
-            ),
-          ],
-        ),
 
         // Lista de ingresos del mes: cada item permite editar o eliminar.
         // Solo se muestra cuando la cuenta tiene ingresos cargados.
@@ -666,158 +623,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-// Dialogo de alta y edicion de ingresos (concepto + monto + fecha).
-class _DialogoIngreso extends StatefulWidget {
-  // Ingreso a editar. Null -> modo alta.
-  final Ingreso? ingreso;
-
-  const _DialogoIngreso({this.ingreso});
-
-  @override
-  State<_DialogoIngreso> createState() => _DialogoIngresoState();
-}
-
-class _DialogoIngresoState extends State<_DialogoIngreso> {
-  final _formKey = GlobalKey<FormState>();
-  final _conceptoController = TextEditingController();
-  final _montoController = TextEditingController();
-  late DateTime _fecha;
-
-  bool get _esEdicion => widget.ingreso != null;
-
-  @override
-  void initState() {
-    super.initState();
-    final Ingreso? ingreso = widget.ingreso;
-    if (ingreso != null) {
-      _conceptoController.text = ingreso.concepto;
-      _montoController.text = ingreso.monto.toStringAsFixed(2);
-      _fecha = DateTime.tryParse(ingreso.fecha) ?? DateTime.now();
-    } else {
-      _fecha = DateTime.now();
-    }
-  }
-
-  @override
-  void dispose() {
-    _conceptoController.dispose();
-    _montoController.dispose();
-    super.dispose();
-  }
-
-  String _aTextoFecha(DateTime fecha) {
-    final String mes = fecha.month.toString().padLeft(2, '0');
-    final String dia = fecha.day.toString().padLeft(2, '0');
-    return '${fecha.year}-$mes-$dia';
-  }
-
-  Future<void> _elegirFecha() async {
-    final DateTime? seleccionada = await showDatePicker(
-      context: context,
-      initialDate: _fecha,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (seleccionada != null) {
-      setState(() => _fecha = seleccionada);
-    }
-  }
-
-  Future<void> _guardar() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-    final double monto =
-        double.tryParse(_montoController.text.replaceAll(',', '.')) ?? 0;
-    final Ingreso ingreso = Ingreso(
-      _conceptoController.text.trim(),
-      monto,
-      _aTextoFecha(_fecha),
-      widget.ingreso?.id,
-    );
-    if (_esEdicion) {
-      await IngresoRepository().updateIngreso(ingreso);
-    } else {
-      await IngresoRepository().addIngreso(ingreso);
-    }
-    if (mounted) {
-      Navigator.of(context).pop(true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(_esEdicion ? 'Editar ingreso' : 'Agregar ingreso'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _conceptoController,
-                decoration: const InputDecoration(
-                  labelText: 'Concepto',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => (value == null || value.trim().isEmpty)
-                    ? 'Ingresá un concepto'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _montoController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Monto',
-                  prefixText: '\$',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Ingresá el monto';
-                  }
-                  final double? monto =
-                      double.tryParse(value.replaceAll(',', '.'));
-                  if (monto == null || monto <= 0) {
-                    return 'Ingresá un monto mayor a cero';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: _elegirFecha,
-                borderRadius: BorderRadius.circular(8),
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Fecha',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.calendar_today_outlined),
-                  ),
-                  child: Text(formatearFecha(_aTextoFecha(_fecha))),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancelar'),
-        ),
-        ElevatedButton(
-          onPressed: _guardar,
-          child: Text(_esEdicion ? 'Guardar cambios' : 'Guardar'),
-        ),
-      ],
     );
   }
 }

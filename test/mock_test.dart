@@ -11,6 +11,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'codigo_test_helper.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:flutter_application_1/main.dart';
@@ -131,6 +133,7 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(2), '123456');
       await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
       await tester.pumpAndSettle();
+      await cerrarCodigoRecuperacion(tester);
       await esperarBD(tester);
 
       // ---------------------------------------------------------------
@@ -139,16 +142,16 @@ void main() {
       expect(find.text('Aun no hay gastos registrados.'), findsNothing);
 
       // Saldo total del mock: ingresos 430000 - gastos 2870 - ahorros 520000.
-      expect(find.text('-\$92870'), findsOneWidget);
+      expect(find.text('-\$92.870'), findsOneWidget);
 
       // Seccion de ingresos del mes: 350000 + 80000 (queda bajo el pliegue).
       await tester.scrollUntilVisible(
-        find.text('Total \$430000 • 2 registro(s)'),
+        find.text('Total \$430.000 • 2 registro(s)'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
-      expect(find.text('Total \$430000 • 2 registro(s)'), findsOneWidget);
+      expect(find.text('Total \$430.000 • 2 registro(s)'), findsOneWidget);
 
       // Se baja hasta el ultimo gasto de ejemplo: los 4 tienen que estar.
       await tester.scrollUntilVisible(
@@ -173,7 +176,7 @@ void main() {
           findsNothing);
       expect(find.text('Vacaciones de verano'), findsOneWidget);
       // 175000 + 300000 + 45000 de las metas de ejemplo.
-      expect(find.text('\$520000'), findsOneWidget);
+      expect(find.text('\$520.000'), findsOneWidget);
 
       // ---------------------------------------------------------------
       // 4. MODO DEMO ACTIVO DURANTE TODA LA PRUEBA

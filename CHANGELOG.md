@@ -8,6 +8,91 @@ Estado al cierre de este registro: `flutter analyze` sin issues y
 
 ---
 
+## [Ajustes de testeo] — 2026-11-10
+
+Cambios pedidos por los compañeros que probaron la app.
+
+### Inicio y botón "+"
+
+- Se eliminaron los botones sueltos **"Agregar ingreso"** y **"Hogar"** de la
+  pantalla de Inicio.
+- El botón **+** de la barra inferior abre ahora un menú (hoja inferior) con
+  tres opciones: **Nuevo gasto**, **Nuevo ingreso** y **Servicios del hogar**.
+- El diálogo de ingreso pasó a `lib/ui/dialogo_ingreso.dart` (`DialogoIngreso`),
+  porque lo usan Inicio (editar ingreso) y el menú (nuevo ingreso).
+- Al cargar un ingreso desde el menú o volver de Servicios del hogar, las
+  vistas se recargan y se actualiza la cabecera.
+
+### Tests
+
+- 36 tests en verde. Los pasos que usaban los botones sueltos ahora usan el
+  menú del "+".
+
+### Ahorro: cuánto ahorrar (reemplaza el consejo fijo)
+
+- Se eliminó el tip estático "Aportando $15.000 por semana...".
+- La tarjeta **"Cuánto ahorrar"** calcula para cada meta, con su importe y su
+  fecha objetivo: lo que falta, cuánto ahorrar **por semana** y **por mes**.
+  Los periodos se redondean hacia arriba.
+- Estados: en curso (muestra el plan), completada ("Meta completa") y vencida
+  (la fecha ya pasó, se pide editar la meta).
+- Lógica pura en `lib/util/utils.dart` (`calcularPlanAhorro`, `PlanAhorro`,
+  `EstadoPlanAhorro`). Tests en `test/plan_ahorro_test.dart` (6 casos).
+
+### Ahorro: una sola forma de crear una meta
+
+- Se quitó el ícono de "Nueva meta" de la barra superior. Queda el botón
+  "Nueva meta" de la lista de metas, que dice qué hace.
+
+### Registro: enlace a iniciar sesión
+
+- Nuevo enlace "¿Ya tenés una cuenta? Iniciá sesión" en la pantalla de
+  creación de cuenta. Abre el login y, si entra, la cuenta queda activa.
+  (`lib/ui/usuario_screen.dart`, test en `test/auth_enlaces_test.dart`).
+
+### Formato de montos
+
+- `formatearMoneda` separa los miles con punto y no muestra decimales:
+  `$1500` pasa a `$1.500`, `-$20000` a `-$20.000`. Se usa en todas las
+  pantallas y en el mensaje de "Gasto agregado".
+- Los campos de edición siguen mostrando el número sin separadores, porque
+  al guardar se leen de vuelta (con "1.500" se leería 1,5).
+- Los tests que esperaban montos sin separador se actualizaron.
+
+### Recuperación de contraseña (código de recuperación)
+
+- **Código de recuperación** de 10 caracteres (`XXXXX-XXXXX`, sin 0/O/1/I),
+  aleatorio (`Random.secure`). Se guarda solo su hash (`lib/data/codigo_recuperacion.dart`),
+  con el mismo esquema que las contraseñas y un prefijo propio.
+- **Alta de cuenta**: al crearla se muestra el código en un diálogo que se
+  cierra solo con "Ya lo guardé" (botón "Copiar código" incluido).
+- **Cuentas existentes**: no fueron borradas. El código se genera desde
+  **Mi perfil** ("Generar código") y se muestra una sola vez. Si ya tiene uno,
+  el perfil solo permite "Generar nuevo código" (pide confirmación y el
+  anterior deja de servir).
+- **"Olvidé mi contraseña"** en el login: pantalla con correo, código y nueva
+  contraseña. El mensaje de error es el mismo para correo, código o cuenta
+  incorrectos, para no revelar qué cuentas existen.
+- El código es **de uso único**: al usarlo se borra y la cuenta queda sin
+  código hasta generar uno nuevo desde el perfil.
+- Columna nueva `usuarios.codigoRecuperacion` (migración automática en
+  `DbHelper._crearTablaUsuarios`).
+- Tests: `test/codigo_recuperacion_test.dart` (lógica) y
+  `test/recuperacion_test.dart` (flujo contra la base). `test/codigo_test_helper.dart`
+  cierra el diálogo del código en los tests que crean cuentas.
+
+### Login: enlace a registro
+
+- Nuevo enlace "¿No tenés una cuenta? Registrate" en iniciar sesión. Abre el
+  registro y, si se crea la cuenta, queda activa (mismo criterio que el enlace
+  inverso del registro). Test en `test/auth_enlaces_test.dart`.
+
+### Tests
+
+- 51 tests en verde.
+
+---
+
 ## [Diseño de inicio] — 2026-11-05
 
 ### Introducción (primera vez que se abre la app)

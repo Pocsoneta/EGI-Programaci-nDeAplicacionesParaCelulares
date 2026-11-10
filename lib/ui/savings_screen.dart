@@ -127,13 +127,6 @@ class _SavingsScreenState extends State<SavingsScreen> {
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_task_outlined),
-            tooltip: 'Nueva meta',
-            onPressed: _nuevaMeta,
-          ),
-        ],
       ),
       body: FutureBuilder<List<MetaAhorro>>(
         future: _metasFuture,
@@ -194,8 +187,8 @@ class _SavingsScreenState extends State<SavingsScreen> {
 
           const SizedBox(height: 20),
 
-          // Consejos o Tips de Ahorro
-          _buildTipCard(),
+          // Cuanto ahorrar por semana y por mes segun cada meta.
+          _buildPlanCard(metas),
         ],
       ),
     );
@@ -355,8 +348,19 @@ class _SavingsScreenState extends State<SavingsScreen> {
     );
   }
 
-  // Tarjeta de recomendación
-  Widget _buildTipCard() {
+  // Tarjeta con cuanto ahorrar por semana y por mes para cada meta, segun su
+  // importe y su fecha objetivo (se recalcula con los datos actuales).
+  Widget _buildPlanCard(List<MetaAhorro> metas) {
+    final DateTime hoy = DateTime.now();
+    final List<Widget> lineas = <Widget>[];
+    for (final MetaAhorro meta in metas) {
+      final PlanAhorro? plan = calcularPlanAhorro(meta, hoy);
+      if (plan == null) {
+        continue;
+      }
+      lineas.add(_buildLineaPlan(meta, plan));
+    }
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -365,16 +369,61 @@ class _SavingsScreenState extends State<SavingsScreen> {
         border: Border.all(color: Colors.teal.shade200),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.lightbulb_outline, color: Colors.teal, size: 26),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              'Aportando \$15.000 extra por semana podés alcanzar tu meta de vacaciones 1 mes antes.',
-              style: TextStyle(fontSize: 12, color: Colors.teal.shade700),
-            ),
+            child: lineas.isEmpty
+                ? Text(
+                    'Creá una meta con importe y fecha para ver cuánto tenés que ahorrar por semana o por mes.',
+                    style: TextStyle(fontSize: 12, color: Colors.teal.shade700),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Cuánto ahorrar',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
+                      ),
+                      const SizedBox(height: 6),
+                      ...lineas,
+                    ],
+                  ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLineaPlan(MetaAhorro meta, PlanAhorro plan) {
+    final TextStyle base = TextStyle(fontSize: 12, color: Colors.teal.shade700);
+    final String fecha = formatearFecha(meta.fechaObjetivo);
+    final String detalle;
+    switch (plan.estado) {
+      case EstadoPlanAhorro.completada:
+        detalle = 'Meta completa.';
+      case EstadoPlanAhorro.vencida:
+        detalle = 'La fecha ($fecha) ya pasó. Editá la meta para recalcular.';
+      case EstadoPlanAhorro.enCurso:
+        detalle =
+            'Te faltan ${formatearMoneda(plan.faltante)} hasta el $fecha: '
+            '${formatearMoneda(plan.porSemana)} por semana o '
+            '${formatearMoneda(plan.porMes)} por mes.';
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text.rich(
+        TextSpan(
+          style: base,
+          children: [
+            TextSpan(
+              text: '${meta.titulo}: ',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(text: detalle),
+          ],
+        ),
       ),
     );
   }

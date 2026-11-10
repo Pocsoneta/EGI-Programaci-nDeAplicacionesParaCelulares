@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/dbhelper.dart';
 import '../model/model.dart';
 import '../data/usuario_repository.dart';
+import 'codigo_recuperacion_dialog.dart';
 import 'login_screen.dart';
 import 'usuario_screen.dart';
 
@@ -25,6 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _passwordController = TextEditingController();
 
   Usuario? _usuario;
+  bool _tieneCodigo = false;
   bool _cargando = true;
   bool _editando = false;
   bool _guardando = false;
@@ -47,14 +49,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _cargarUsuario() async {
     final int? id = DbHelper().currentUserId;
     Usuario? usuario;
+    bool tieneCodigo = false;
     if (id != null) {
       usuario = await UsuarioRepository().getUsuario(id);
+      tieneCodigo = await UsuarioRepository().tieneCodigoRecuperacion(id);
     }
     if (!mounted) {
       return;
     }
     setState(() {
       _usuario = usuario;
+      _tieneCodigo = tieneCodigo;
       _cargando = false;
       if (usuario != null) {
         _nombreController.text = usuario.nombre;
@@ -117,6 +122,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Datos actualizados')),
+    );
+  }
+
+  // Genera un codigo de recuperacion y lo muestra una sola vez. Si la cuenta ya
+  // tenia uno, el nuevo reemplaza al anterior (se pide confirmacion).
+  Future<void> _generarCodigo({required bool reemplazar}) async {
+    final Usuario? usuario = _usuario;
+    if (usuario?.id == null) {
+      return;
+    }
+    if (reemplazar) {
+      final bool? confirmado = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Generar nuevo código'),
+          content: const Text(
+            'El código anterior dejará de funcionar. ¿Querés generar uno nuevo?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Generar'),
+            ),
+          ],
+        ),
+      );
+      if (confirmado != true || !mounted) {
+        return;
+      }
+    }
+    final String codigo = await UsuarioRepository().generarNuevoCodigo(
+      usuario!.id!,
+      usuario.email,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() => _tieneCodigo = true);
+    await mostrarCodigoRecuperacion(context, codigo);
+  }
+
+  // Tarjeta de recuperacion: el codigo nunca se vuelve a mostrar una vez
+  // visto; solo se puede generar uno nuevo.
+  Widget _buildRecuperacion() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Recuperación de contraseña',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _tieneCodigo
+                ? 'Tu cuenta tiene un código de recuperación. Por seguridad no se vuelve a mostrar: si lo perdiste, generá uno nuevo.'
+                : 'Tu cuenta no tiene código de recuperación. Generalo y guardalo: se muestra una sola vez.',
+            style: const TextStyle(color: Colors.black54, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          if (_tieneCodigo)
+            OutlinedButton.icon(
+              onPressed: () => _generarCodigo(reemplazar: true),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Generar nuevo código'),
+            )
+          else
+            ElevatedButton.icon(
+              onPressed: () => _generarCodigo(reemplazar: false),
+              icon: const Icon(Icons.vpn_key_outlined),
+              label: const Text('Generar código'),
+            ),
+        ],
+      ),
     );
   }
 
@@ -274,6 +362,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               label: const Text('Editar datos'),
             ),
 
+          const SizedBox(height: 24),
+
+          _buildRecuperacion(),
           const SizedBox(height: 24),
 
           // Cuentas: crear una nueva o entrar con otra.

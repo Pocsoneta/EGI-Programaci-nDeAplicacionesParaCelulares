@@ -16,6 +16,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'codigo_test_helper.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:flutter_application_1/main.dart';
@@ -68,6 +70,7 @@ Future<void> crearCuenta(
 
   await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
   await tester.pumpAndSettle();
+  await cerrarCodigoRecuperacion(tester);
   await esperarBD(tester);
 }
 
@@ -76,8 +79,9 @@ Future<void> crearCuenta(
 Future<void> abrirHogar(WidgetTester tester) async {
   await tester.tap(find.text('Inicio'));
   await tester.pumpAndSettle();
-  await tester.ensureVisible(find.widgetWithText(OutlinedButton, 'Hogar'));
-  await tester.tap(find.widgetWithText(OutlinedButton, 'Hogar'));
+  await tester.tap(find.byType(FloatingActionButton));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Servicios del hogar'));
   await tester.pumpAndSettle();
   await esperarBD(tester);
 }
@@ -253,7 +257,9 @@ void main() {
       // ---------------------------------------------------------------
       // 1. ALTA DE UN INGRESO DESDE EL INICIO
       // ---------------------------------------------------------------
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Agregar ingreso'));
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nuevo ingreso'));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Sueldo');
@@ -264,7 +270,7 @@ void main() {
 
       // La tarjeta de Ingresos del inicio se actualiza con el valor real
       // (el mismo numero puede repetirse en la tarjeta de saldo total).
-      expect(find.text('\$50000'), findsWidgets);
+      expect(find.text('\$50.000'), findsWidgets);
 
       final List<Ingreso> ingresos = await tester
               .runAsync<List<Ingreso>>(() => IngresoRepository().getIngresos()) ??
@@ -315,7 +321,7 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      expect(find.text('Ahorrado: \$5000'), findsOneWidget);
+      expect(find.text('Ahorrado: \$5.000'), findsOneWidget);
       expect(find.text('25%'), findsWidgets);
 
       final List<MetaAhorro> metasActualizadas = await tester
@@ -331,7 +337,7 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      expect(find.text('\$45000'), findsOneWidget);
+      expect(find.text('\$45.000'), findsOneWidget);
       expect(
         find.text('Plata que tenés disponible para gastar'),
         findsOneWidget,
@@ -362,7 +368,7 @@ void main() {
       await esperarBD(tester);
 
       expect(find.text('Luz'), findsOneWidget);
-      expect(find.text('\$8500'), findsWidgets);
+      expect(find.text('\$8.500'), findsWidgets);
 
       List<ServicioHogar> servicios = await tester
               .runAsync<List<ServicioHogar>>(
@@ -399,10 +405,10 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      expect(find.text('\$14500'), findsOneWidget); // total del resumen
+      expect(find.text('\$14.500'), findsOneWidget); // total del resumen
       // Pagado y pendiente aparecen tanto en el resumen como en cada item.
-      expect(find.text('\$8500'), findsWidgets);
-      expect(find.text('\$6000'), findsWidgets);
+      expect(find.text('\$8.500'), findsWidgets);
+      expect(find.text('\$6.000'), findsWidgets);
 
       // ---------------------------------------------------------------
       // 4. ALTA DE UN GRUPO CON SUS INTEGRANTES
@@ -455,6 +461,8 @@ void main() {
       // 1. ALTA DE UN GASTO (la fecha de vencimiento se elige en el form)
       // ---------------------------------------------------------------
       await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nuevo gasto'));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Alquiler');
@@ -544,7 +552,9 @@ void main() {
       // ---------------------------------------------------------------
       // 1. ALTA DE UN INGRESO
       // ---------------------------------------------------------------
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Agregar ingreso'));
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nuevo ingreso'));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Sueldo');
@@ -555,7 +565,7 @@ void main() {
 
       // Aparece la seccion de ingresos con el item recien cargado.
       expect(find.text('Ingresos del mes'), findsOneWidget);
-      expect(find.text('+\$50000'), findsOneWidget);
+      expect(find.text('+\$50.000'), findsOneWidget);
 
       // ---------------------------------------------------------------
       // 2. EDICION: se cambia el monto desde el menu del item
@@ -582,7 +592,7 @@ void main() {
           <Ingreso>[];
       expect(trasEdicion, hasLength(1));
       expect(trasEdicion.first.monto, 75000, reason: 'La edicion no persistio');
-      expect(find.text('+\$75000'), findsOneWidget);
+      expect(find.text('+\$75.000'), findsOneWidget);
 
       // ---------------------------------------------------------------
       // 3. BAJA: se elimina y la seccion desaparece al quedar vacia
@@ -655,7 +665,7 @@ void main() {
       expect(find.text('Luz (Edemsa)'), findsOneWidget);
       // El resumen refleja el monto nuevo.
       expect(find.text('Total Servicios y Hogar'), findsOneWidget);
-      expect(find.text('\$9500'), findsWidgets);
+      expect(find.text('\$9.500'), findsWidgets);
 
       final List<ServicioHogar> trasEdicion = await tester
               .runAsync<List<ServicioHogar>>(
@@ -708,7 +718,7 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      expect(find.text('Ahorrado: \$5000'), findsOneWidget);
+      expect(find.text('Ahorrado: \$5.000'), findsOneWidget);
 
       // ---------------------------------------------------------------
       // 2. EDICION: se cambia el monto objetivo y lo ahorrado se conserva
@@ -726,7 +736,7 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      expect(find.text('Objetivo: \$40000'), findsOneWidget);
+      expect(find.text('Objetivo: \$40.000'), findsOneWidget);
 
       List<MetaAhorro> metas = await tester
               .runAsync<List<MetaAhorro>>(() => MetaAhorroRepository().getMetas()) ??
@@ -761,7 +771,7 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      expect(find.text('Ahorrado: \$3000'), findsOneWidget);
+      expect(find.text('Ahorrado: \$3.000'), findsOneWidget);
 
       metas = await tester
               .runAsync<List<MetaAhorro>>(() => MetaAhorroRepository().getMetas()) ??
@@ -940,7 +950,7 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      expect(find.text('-\$8500'), findsOneWidget, reason: 'Saldo sin descontar');
+      expect(find.text('-\$8.500'), findsOneWidget, reason: 'Saldo sin descontar');
 
       await tester.scrollUntilVisible(
         find.text('Luz'),
@@ -1027,8 +1037,8 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      expect(find.text('Me debe \$3000'), findsOneWidget);
-      expect(find.text('Te deben \$3000'), findsOneWidget);
+      expect(find.text('Me debe \$3.000'), findsOneWidget);
+      expect(find.text('Te deben \$3.000'), findsOneWidget);
 
       // A Maria le debo 1000: hay que cambiar la direccion a "Le debés".
       await tester.tap(find.byTooltip('Acciones de Maria'));
@@ -1042,9 +1052,9 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      expect(find.text('Le debés \$1000'), findsOneWidget);
+      expect(find.text('Le debés \$1.000'), findsOneWidget);
       // El total del grupo es la suma firmada: 3000 - 1000.
-      expect(find.text('Te deben \$2000'), findsOneWidget);
+      expect(find.text('Te deben \$2.000'), findsOneWidget);
 
       // Las deudas individuales y el saldo total quedaron en SQLite.
       final List<Grupo> grupos = await tester
@@ -1069,7 +1079,7 @@ void main() {
       await esperarBD(tester);
 
       expect(find.text('Al día'), findsOneWidget);
-      expect(find.text('Debés \$1000'), findsOneWidget);
+      expect(find.text('Debés \$1.000'), findsOneWidget);
 
       List<Gasto> gastos = await tester
               .runAsync<List<Gasto>>(() => GastoRepository().getGastos()) ??
@@ -1143,7 +1153,7 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      expect(find.text('\$2000'), findsOneWidget,
+      expect(find.text('\$2.000'), findsOneWidget,
           reason: 'El saldo del inicio no reflejo los movimientos del grupo');
     },
   );

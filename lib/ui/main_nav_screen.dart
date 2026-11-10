@@ -5,6 +5,7 @@ import 'household_screen.dart';
 import 'month_screen.dart';
 import 'notifications_screen.dart';
 import 'add_expense_sheet.dart';
+import 'dialogo_ingreso.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import '../data/dbhelper.dart';
@@ -69,19 +70,73 @@ class _MainNavScreenState extends State<MainNavScreen> {
 
   // Las vistas se construyen dinamicamente para permitir recargas de datos.
   List<Widget> get _views => [
-    HomeScreen(onAbrirHogar: _openHousehold),
+    HomeScreen(),
     MonthScreen(),
     GroupsScreen(),
     SavingsScreen(),
   ];
 
-  // Servicios del hogar: se abren como pantalla propia desde el inicio.
-  // Al volver se refresca la cabecera (alertas y avatar).
+  // Menu del boton "+": gasto, ingreso o servicios del hogar.
+  Future<void> _openAddMenu() async {
+    final String? opcion = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _opcionMenu(context, 'gasto', Icons.receipt_long_outlined, 'Nuevo gasto'),
+            _opcionMenu(context, 'ingreso', Icons.trending_up, 'Nuevo ingreso'),
+            _opcionMenu(context, 'hogar', Icons.cottage_outlined, 'Servicios del hogar'),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || opcion == null) {
+      return;
+    }
+    if (opcion == 'gasto') {
+      await _openAddExpense();
+    } else if (opcion == 'ingreso') {
+      await _openAddIngreso();
+    } else if (opcion == 'hogar') {
+      await _openHousehold();
+    }
+  }
+
+  Widget _opcionMenu(BuildContext context, String valor, IconData icono, String texto) {
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: _azul.withAlpha(30),
+        child: Icon(icono, color: _azul),
+      ),
+      title: Text(texto, style: const TextStyle(fontWeight: FontWeight.w600)),
+      onTap: () => Navigator.of(context).pop(valor),
+    );
+  }
+
+  // Alta de un ingreso desde el menu del "+". Al guardar se recargan las vistas.
+  Future<void> _openAddIngreso() async {
+    final bool? guardado = await showDialog<bool>(
+      context: context,
+      builder: (context) => const DialogoIngreso(),
+    );
+    if (guardado == true && mounted) {
+      setState(() {});
+      _actualizarCabecera();
+    }
+  }
+
+  // Servicios del hogar: se abren como pantalla propia desde el menu del "+".
+  // Al volver se recarga el inicio (pagar un servicio crea o quita un gasto)
+  // y se refresca la cabecera (alertas y avatar).
   Future<void> _openHousehold() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const HouseholdScreen()),
     );
     if (mounted) {
+      setState(() {});
       _actualizarCabecera();
     }
   }
@@ -246,7 +301,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
         elevation: 4,
         shape: const CircleBorder(),
         onPressed: () {
-          _openAddExpense();
+          _openAddMenu();
         },
         child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
