@@ -309,8 +309,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
       bottomNavigationBar: BottomAppBar(
         color: Colors.white,
         height: 60,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Row(
           children: [

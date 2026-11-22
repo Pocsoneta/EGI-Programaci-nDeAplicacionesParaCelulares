@@ -28,7 +28,6 @@ import 'package:flutter_application_1/data/grupo_repository.dart';
 import 'package:flutter_application_1/data/ingreso_repository.dart';
 import 'package:flutter_application_1/data/meta_ahorro_repository.dart';
 import 'package:flutter_application_1/model/model.dart';
-import 'package:flutter_application_1/data/miembro_grupo_repository.dart';
 import 'package:flutter_application_1/data/servicio_hogar_repository.dart';
 import 'package:flutter_application_1/data/usuario_repository.dart';
 import 'package:flutter_application_1/util/utils.dart';
@@ -167,7 +166,6 @@ void main() {
         find.text('Aún no tenés grupos. Creá uno con el botón de arriba.'),
         findsOneWidget,
       );
-      expect(find.text('Sin actividad para mostrar.'), findsOneWidget);
 
       // ---------------------------------------------------------------
       // AHORRO: sin metas creadas.
@@ -346,7 +344,7 @@ void main() {
   );
 
   testWidgets(
-    'Servicios del hogar y grupos se guardan en SQLite',
+    'Servicios del hogar se guardan en SQLite',
     (WidgetTester tester) async {
       await crearCuenta(tester, nombre: 'Federico Luna', email: 'fede@test.com');
 
@@ -410,45 +408,6 @@ void main() {
       expect(find.text('\$8.500'), findsWidgets);
       expect(find.text('\$6.000'), findsWidgets);
 
-      // ---------------------------------------------------------------
-      // 4. ALTA DE UN GRUPO CON SUS INTEGRANTES
-      // ---------------------------------------------------------------
-      await volverDeHogar(tester);
-      await tester.tap(find.text('Grupo'));
-      await tester.pumpAndSettle();
-      await esperarBD(tester);
-
-      await tester.tap(find.byTooltip('Nuevo grupo'));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextFormField).at(0), 'Asado');
-      await tester.enterText(
-          find.byType(TextFormField).at(1), 'Ana, Luis, Sofia');
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Crear grupo'));
-      await tester.pumpAndSettle();
-      await esperarBD(tester);
-
-      // El grupo arranca con sus integrantes y sin deudas cargadas.
-      expect(find.text('Asado'), findsOneWidget);
-      expect(find.text('3 integrantes'), findsOneWidget);
-      expect(find.text('Todo saldado'), findsOneWidget);
-
-      final List<Grupo> grupos = await tester
-              .runAsync<List<Grupo>>(() => GrupoRepository().getGrupos()) ??
-          <Grupo>[];
-      expect(grupos, hasLength(1));
-      expect(grupos.first.nombre, 'Asado');
-      expect(grupos.first.integrantes, 3);
-      expect(grupos.first.saldo, 0);
-
-      // Los integrantes quedaron persistidos uno por uno, sin deuda.
-      final List<MiembroGrupo> miembros = await tester
-              .runAsync<List<MiembroGrupo>>(
-                  () => MiembroGrupoRepository().getMiembros(grupos.first.id!)) ??
-          <MiembroGrupo>[];
-      expect(miembros.map((MiembroGrupo m) => m.nombre),
-          <String>['Ana', 'Luis', 'Sofia']);
-      expect(miembros.every((MiembroGrupo m) => m.deuda == 0), isTrue);
     },
   );
 
@@ -824,50 +783,6 @@ void main() {
     },
   );
 
-  test(
-    'Un grupo con integrantes se crea en una base de una version anterior',
-    () async {
-      // Base tal como la dejaba la version anterior de la app: tenia grupos
-      // y servicios pero NO la tabla grupo_miembros (deudas individuales).
-      final String ruta = '$_dirTest/finanzapp_78.db';
-      final Database vieja = await databaseFactory.openDatabase(ruta);
-      await vieja.execute('CREATE TABLE gastos ('
-          'id INTEGER PRIMARY KEY AUTOINCREMENT, '
-          'concepto TEXT, monto REAL, categoria TEXT, '
-          'expiration TEXT, fqYear INTEGER, fqHalfYear INTEGER, '
-          'fqMonth INTEGER);');
-      await vieja.execute('CREATE TABLE grupos ('
-          'id INTEGER PRIMARY KEY AUTOINCREMENT, '
-          'nombre TEXT, integrantes INTEGER, saldo INTEGER, icono TEXT);');
-      await vieja.execute('CREATE TABLE servicios_hogar ('
-          'id INTEGER PRIMARY KEY AUTOINCREMENT, '
-          'titulo TEXT, detalle TEXT, monto REAL, pagado INTEGER);');
-      await vieja.close();
-
-      await DbHelper().setCurrentUser(78);
-
-      // Alta de un grupo con 2 integrantes, igual que hace la pantalla.
-      final int grupoId =
-          await GrupoRepository().addGrupo(Grupo('Asado', 2, 0, 'otro'));
-      await MiembroGrupoRepository().addMiembro(MiembroGrupo(grupoId, 'Juan', 0));
-      await MiembroGrupoRepository()
-          .addMiembro(MiembroGrupo(grupoId, 'Pedro', 0));
-
-      // La tabla nueva existe en la base vieja y los integrantes persisten.
-      final List<MiembroGrupo> miembros =
-          await MiembroGrupoRepository().getMiembros(grupoId);
-      expect(miembros, hasLength(2));
-      expect(miembros.map((MiembroGrupo m) => m.nombre),
-          <String>['Juan', 'Pedro']);
-
-      // Y el saldo total del grupo se calcula desde las deudas.
-      miembros[1].deuda = -500;
-      await MiembroGrupoRepository().updateMiembro(miembros[1]);
-      final List<MiembroGrupo> trasCambio =
-          await MiembroGrupoRepository().getMiembros(grupoId);
-      expect(totalDeudasGrupo(trasCambio), -500);
-    },
-  );
 
   // ---------------------------------------------------------------------
   // INTEGRACION: todo queda conectado al saldo del inicio.
@@ -984,197 +899,9 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Grupos: deudas individuales por integrante y pagos que crean gastos',
-    (WidgetTester tester) async {
-      await crearCuenta(tester, nombre: 'Marcos Diaz', email: 'marcos@test.com');
-
-      await tester.tap(find.text('Grupo'));
-      await tester.pumpAndSettle();
-      await esperarBD(tester);
-
-      // ---------------------------------------------------------------
-      // 1. ALTA DEL GRUPO CON SUS INTEGRANTES (todavia sin deudas)
-      // ---------------------------------------------------------------
-      await tester.tap(find.byTooltip('Nuevo grupo'));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextFormField).at(0), 'Asado');
-      await tester.enterText(find.byType(TextFormField).at(1), 'Juan, Maria');
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Crear grupo'));
-      await tester.pumpAndSettle();
-      await esperarBD(tester);
-
-      expect(find.text('Asado'), findsOneWidget);
-      expect(find.text('2 integrantes'), findsOneWidget);
-      expect(find.text('Todo saldado'), findsOneWidget);
-
-      // ---------------------------------------------------------------
-      // 2. CARGA DE LAS DEUDAS INDIVIDUALES DESDE LA FICHA DEL GRUPO
-      // ---------------------------------------------------------------
-      // Los grupos estan ordenados por nombre: Asado es el primero.
-      final Finder menuGrupo = find.byTooltip('Acciones del grupo').first;
-      await tester.ensureVisible(menuGrupo);
-      await tester.pumpAndSettle();
-      await tester.tap(menuGrupo);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Ver deudas'));
-      await tester.pumpAndSettle();
-      await esperarBD(tester);
-
-      expect(find.text('Juan'), findsOneWidget);
-      expect(find.text('Maria'), findsOneWidget);
-      expect(find.text('Al día'), findsWidgets);
-
-      // Juan me debe 3000 (la direccion por defecto es "Me debe").
-      await tester.tap(find.byTooltip('Acciones de Juan'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Editar deuda'));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextFormField).at(1), '3000');
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Guardar cambios'));
-      await tester.pumpAndSettle();
-      await esperarBD(tester);
-
-      expect(find.text('Me debe \$3.000'), findsOneWidget);
-      expect(find.text('Te deben \$3.000'), findsOneWidget);
-
-      // A Maria le debo 1000: hay que cambiar la direccion a "Le debés".
-      await tester.tap(find.byTooltip('Acciones de Maria'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Editar deuda'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Le debés'));
-      await tester.enterText(find.byType(TextFormField).at(1), '1000');
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Guardar cambios'));
-      await tester.pumpAndSettle();
-      await esperarBD(tester);
-
-      expect(find.text('Le debés \$1.000'), findsOneWidget);
-      // El total del grupo es la suma firmada: 3000 - 1000.
-      expect(find.text('Te deben \$2.000'), findsOneWidget);
-
-      // Las deudas individuales y el saldo total quedaron en SQLite.
-      final List<Grupo> grupos = await tester
-              .runAsync<List<Grupo>>(() => GrupoRepository().getGrupos()) ??
-          <Grupo>[];
-      expect(grupos, hasLength(1));
-      expect(grupos.first.saldo, 2000,
-          reason: 'El saldo total no sumo las deudas individuales');
-      expect(grupos.first.integrantes, 2);
-
-      // ---------------------------------------------------------------
-      // 3. JUAN ME PAGA 3000: EL COBRO ES UN GASTO NEGATIVO
-      // ---------------------------------------------------------------
-      await tester.tap(find.byTooltip('Acciones de Juan'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Me pagan'));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextFormField).at(0), '3000');
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Recibir'));
-      await tester.pumpAndSettle();
-      await esperarBD(tester);
-
-      expect(find.text('Al día'), findsOneWidget);
-      expect(find.text('Debés \$1.000'), findsOneWidget);
-
-      List<Gasto> gastos = await tester
-              .runAsync<List<Gasto>>(() => GastoRepository().getGastos()) ??
-          <Gasto>[];
-      expect(gastos, hasLength(1));
-      expect(gastos.first.concepto, 'Cobro de Juan');
-      expect(gastos.first.monto, -3000, reason: 'El cobro tenia que sumar plata');
-
-      // ---------------------------------------------------------------
-      // 4. PAGARLE A MARIA: NO SE PUEDE PAGAR MAS DE LO QUE SE DEBE
-      // ---------------------------------------------------------------
-      await tester.tap(find.byTooltip('Acciones de Maria'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Pagar'));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextFormField).at(0), '999999');
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Pagar'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('No podés pagar más de'), findsOneWidget);
-      await tester.tap(find.widgetWithText(TextButton, 'Cancelar'));
-      await tester.pumpAndSettle();
-
-      // ---------------------------------------------------------------
-      // 5. PAGO COMPLETO: TODO SALDADO Y EL PAGO CREA UN GASTO
-      // ---------------------------------------------------------------
-      await tester.tap(find.byTooltip('Acciones de Maria'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Pagar'));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextFormField).at(0), '1000');
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Pagar'));
-      await tester.pumpAndSettle();
-      await esperarBD(tester);
-
-      expect(find.text('Todo saldado'), findsOneWidget);
-      expect(find.text('Al día'), findsWidgets);
-
-      gastos = await tester
-              .runAsync<List<Gasto>>(() => GastoRepository().getGastos()) ??
-          <Gasto>[];
-      expect(gastos, hasLength(2));
-      final Gasto pago =
-          gastos.firstWhere((Gasto g) => g.concepto == 'Pago a Maria');
-      expect(pago.monto, 1000);
-
-      // Todo quedo sincronizado en la base.
-      final List<MiembroGrupo> miembros = await tester
-              .runAsync<List<MiembroGrupo>>(
-                  () => MiembroGrupoRepository().getMiembros(grupos.first.id!)) ??
-          <MiembroGrupo>[];
-      expect(miembros, hasLength(2));
-      expect(miembros.every((MiembroGrupo m) => m.deuda == 0), isTrue);
-
-      final List<Grupo> trasSaldar = await tester
-              .runAsync<List<Grupo>>(() => GrupoRepository().getGrupos()) ??
-          <Grupo>[];
-      expect(trasSaldar.first.saldo, 0);
-
-      // ---------------------------------------------------------------
-      // 6. EL SALDO DEL INICIO REFLEJA EL COBRO Y EL PAGO
-      // ---------------------------------------------------------------
-      // Se cierra la ficha para poder cambiar de pantalla.
-      Navigator.of(tester.element(find.text('Total del grupo'))).pop();
-      await tester.pumpAndSettle();
-      await esperarBD(tester);
-
-      // Cobro 3000 - pago 1000 = +2000 disponibles.
-      await tester.tap(find.text('Inicio'));
-      await tester.pumpAndSettle();
-      await esperarBD(tester);
-
-      expect(find.text('\$2.000'), findsOneWidget,
-          reason: 'El saldo del inicio no reflejo los movimientos del grupo');
-    },
-  );
 
   // ---------------------------------------------------------------------
   // INTEGRACION: deudas individuales (logica pura).
   // ---------------------------------------------------------------------
 
-  group('Deudas individuales de grupos (logica pura)', () {
-    test('El total del grupo es la suma firmada de las deudas', () {
-      final List<MiembroGrupo> miembros = <MiembroGrupo>[
-        MiembroGrupo(1, 'Juan', 3000), // me debe
-        MiembroGrupo(1, 'Maria', -1000), // le debo
-        MiembroGrupo(1, 'Pedro', 0), // al dia
-      ];
-
-      expect(totalDeudasGrupo(miembros), 2000);
-    });
-
-    test('Un grupo sin integrantes esta saldado', () {
-      expect(totalDeudasGrupo(<MiembroGrupo>[]), 0);
-    });
-  });
 }

@@ -240,6 +240,35 @@ class DbHelper {
   // Crea (si no existen) todas las tablas de la base del usuario.
   // Se ejecuta en cada apertura, no solo al crear el archivo: una cuenta
   // existente tiene su base desde antes y necesita las tablas nuevas.
+  // Version 2: los grupos pasaron a calcularse desde sus gastos compartidos.
+  // Los grupos del modelo anterior se borran una sola vez, al actualizar la
+  // base. No se vuelve a ejecutar en aperturas posteriores.
+  Future<void> _migrarGrupos(Database db, int versionAnterior) async {
+    if (versionAnterior >= 2) {
+      return;
+    }
+    await db.execute('DROP TABLE IF EXISTS grupos');
+    await db.execute('DROP TABLE IF EXISTS grupo_miembros');
+  }
+
+  // Version 3: un gasto puede tener varias personas que pusieron plata. Cada
+  // gasto existente pasa a tener un unico aporte (el que pago, por el total).
+  // Solo se llena una vez: despues la version de la base ya es 3.
+  Future<void> _migrarAportes(Database db, int versionAnterior) async {
+    if (versionAnterior >= 3 || versionAnterior < 2) {
+      return;
+    }
+    await db.execute('CREATE TABLE IF NOT EXISTS grupo_gasto_aportes ('
+        'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'gastoId INTEGER, '
+        'grupoId INTEGER, '
+        'participanteId INTEGER, '
+        'monto REAL);');
+    await db.execute(
+        'INSERT INTO grupo_gasto_aportes (gastoId, grupoId, participanteId, '
+        'monto) SELECT id, grupoId, pagadoPor, monto FROM grupo_gastos');
+  }
+
   Future<void> _crearTablasGastos(Database db) async {
     await db.execute('CREATE TABLE IF NOT EXISTS gastos ('
         'id INTEGER PRIMARY KEY AUTOINCREMENT, '
@@ -265,14 +294,39 @@ class DbHelper {
     await db.execute('CREATE TABLE IF NOT EXISTS grupos ('
         'id INTEGER PRIMARY KEY AUTOINCREMENT, '
         'nombre TEXT, '
-        'integrantes INTEGER, '
-        'saldo INTEGER, '
-        'icono TEXT);');
-    await db.execute('CREATE TABLE IF NOT EXISTS grupo_miembros ('
+        'emoji TEXT);');
+    await db.execute('CREATE TABLE IF NOT EXISTS grupo_participantes ('
         'id INTEGER PRIMARY KEY AUTOINCREMENT, '
         'grupoId INTEGER, '
         'nombre TEXT, '
-        'deuda REAL);');
+        'esYo INTEGER);');
+    await db.execute('CREATE TABLE IF NOT EXISTS grupo_gastos ('
+        'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'grupoId INTEGER, '
+        'titulo TEXT, '
+        'monto REAL, '
+        'pagadoPor INTEGER, '
+        'fecha TEXT, '
+        'movimientoId INTEGER DEFAULT 0);');
+    await db.execute('CREATE TABLE IF NOT EXISTS grupo_gasto_partes ('
+        'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'gastoId INTEGER, '
+        'grupoId INTEGER, '
+        'participanteId INTEGER, '
+        'monto REAL);');
+    await db.execute('CREATE TABLE IF NOT EXISTS grupo_gasto_aportes ('
+        'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'gastoId INTEGER, '
+        'grupoId INTEGER, '
+        'participanteId INTEGER, '
+        'monto REAL);');
+    await db.execute('CREATE TABLE IF NOT EXISTS grupo_pagos ('
+        'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'grupoId INTEGER, '
+        'deudorId INTEGER, '
+        'acreedorId INTEGER, '
+        'monto REAL, '
+        'fecha TEXT);');
     await db.execute('CREATE TABLE IF NOT EXISTS servicios_hogar ('
         'id INTEGER PRIMARY KEY AUTOINCREMENT, '
         'titulo TEXT, '
@@ -304,8 +358,15 @@ class DbHelper {
       final String ruta = await _rutaDe(databaseName);
       _db = await openDatabase(
         ruta,
-        version: 1,
-        onCreate: (Database db, int version) => _crearTablasGastos(db),
+        version: 3,
+        onCreate: (Database db, int version) async {
+          await _migrarGrupos(db, 0);
+          await _crearTablasGastos(db);
+        },
+        onUpgrade: (Database db, int anterior, int nueva) async {
+          await _migrarGrupos(db, anterior);
+          await _migrarAportes(db, anterior);
+        },
         onOpen: _crearTablasGastos,
       );
       await anterior?.close();
@@ -346,6 +407,13 @@ class DbHelper {
   Future<int> eliminar(String tabla, int id) async {
     final Database db = await this.db;
     return await db.delete(tabla, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // DELETE por condicion (ej. todas las partes de un gasto de grupo).
+  Future<int> eliminarDonde(
+      String tabla, String where, List<Object?> args) async {
+    final Database db = await this.db;
+    return await db.delete(tabla, where: where, whereArgs: args);
   }
 
   // CREATE: inserta un gasto serializado en la base de datos.

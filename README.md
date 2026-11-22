@@ -90,30 +90,29 @@ La tarjeta **Saldo total** del inicio muestra cuánta plata hay disponible:
   automáticamente como gasto (categoría "Servicios", fecha de hoy), y al
   desmarcarlo ese gasto se elimina. Si se edita un servicio pagado, el gasto
   se actualiza junto con él.
-- **Juntadas y Grupos**: cada grupo tiene sus integrantes con la deuda
-  individual de cada uno ("me debe" / "le debo"). Registrar un pago o un
-  cobro mueve esa deuda hacia cero y queda registrado como gasto: el pago
-  resta plata y el cobro entra como gasto negativo (suma plata).
+- **Grupos**: tu parte de cada gasto compartido queda registrada como un
+  gasto personal. Los reembolsos no cambian el saldo, porque la parte propia
+  ya se contó al crear el gasto.
 - **Ahorros**: depositar baja el saldo disponible y retirarlo lo sube (el
   dinero se mueve entre tu billetera y tus metas).
 
-## Deudas individuales por grupo
+## Grupos para dividir gastos
 
-Al crear un grupo se cargan los nombres de sus integrantes (todavía sin
-deuda). Tocando la tarjeta del grupo —o la opción **Ver deudas** de su
-menú— se abre la ficha con cada integrante:
+Inspirado en Tricount: cada grupo tiene un título con emoji, sus participantes
+(vos aparecés como "Personal") y sus gastos compartidos.
 
-- **Deuda individual**: cada integrante tiene su propia deuda con signo
-  desde tu perspectiva: *Me debe $X* (verde), *Le debés $X* (rojo) o
-  *Al día*. Se carga o corrige con **Editar deuda**, eligiendo la dirección
-  (*Me debe* / *Le debés*) y el monto.
-- **Pago y cobro**: las acciones **Pagar** (si le debés) y **Me pagan** (si
-  te deben) mueven la deuda hacia cero y crean el gasto correspondiente —
-  el pago resta plata del saldo del inicio y el cobro la suma — sin poder
-  superar el monto adeudado.
-- **Saldo total del grupo**: es la suma firmada de todas las deudas
-  individuales (`totalDeudasGrupo` en `lib/util/utils.dart`); se
-  recalcula y persiste en SQLite con cada cambio.
+- **Crear grupo**: título, emoji y nombres de los participantes.
+- **Añadir gasto**: título, cantidad, quién puso plata (una o varias personas,
+  cada una con su monto), fecha y cómo se divide:
+  *Igualmente* (con centavos exactos: 100.000 entre 3 da 33.333,34 / 33.333,33 /
+  33.333,33) o *Montos exactos* por persona.
+- **Pestaña Gastos**: lo que se pagó, tu parte y lo que gastaste en total.
+- **Pestaña Saldos**: cuánto te deben o debés. Sale de los gastos, no se carga a mano.
+- **Reembolsos**: quién le debe a quién para dejar todo en cero. *Solicitar*
+  copia un mensaje de cobro; *¡Está pagado!* registra el pago.
+- **Saldo total**: solo cuenta tu parte de cada gasto compartido.
+- Los grupos del modelo anterior se borraron al actualizar la app.
+
 
 ## Primera vez y navegación
 
@@ -132,7 +131,7 @@ flutter analyze
 flutter test
 ```
 
-Al cierre de este registro: `flutter analyze` sin issues y **36 tests en
+Al cierre de este registro: `flutter analyze` sin issues y **64 tests en
 verde**.
 
 ## Historial de cambios
@@ -142,7 +141,7 @@ solución) están registrados en [CHANGELOG.md](CHANGELOG.md).
 
 ## Plataformas
 
-- **Linux**: probada (análisis y 36 tests pasan).
+- **Linux**: probada (análisis y 64 tests pasan).
 - **Windows**: sin probar en esta rama.
 - **Android**: no probada todavía.
 - **Web**: no es compatible. El código usa `dart:io`, que no existe en el navegador.

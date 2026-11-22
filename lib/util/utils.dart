@@ -116,24 +116,14 @@ double totalAhorrado(List<MetaAhorro> metas) {
 ///
 /// Los depositos suben `montoAhorrado` y los retiros lo bajan, por lo que
 /// restar el total ahorrado refleja ambos movimientos sin llevar un
-/// historial aparte. Los gastos negativos (devoluciones de grupos) suman
-/// plata, igual que los servicios pagados y los pagos de grupos restan.
+/// historial aparte. Los gastos negativos suman
+/// plata, igual que los servicios pagados. Los grupos suman solo la parte propia.
 double saldoTotal(
   List<Gasto> gastos,
   List<Ingreso> ingresos,
   List<MetaAhorro> metas,
 ) {
   return totalIngresos(ingresos) - totalGastos(gastos) - totalAhorrado(metas);
-}
-
-/// Suma firmada de las deudas individuales de un grupo.
-/// Positivo -> te deben en total; negativo -> debés en total; 0 -> saldado.
-double totalDeudasGrupo(List<MiembroGrupo> miembros) {
-  double total = 0;
-  for (final MiembroGrupo miembro in miembros) {
-    total += miembro.deuda;
-  }
-  return total;
 }
 
 /// Agrupa los gastos sumando el monto por categoria.
@@ -280,4 +270,14 @@ String fechaHoy() {
   final String mes = ahora.month.toString().padLeft(2, '0');
   final String dia = ahora.day.toString().padLeft(2, '0');
   return '${ahora.year}-$mes-$dia';
+}
+
+/// Monto con centavos, con formato argentino: "$33.333,33" y "-$50.000,00".
+/// Se usa en los grupos, donde las divisiones tienen centavos.
+String formatearMonedaExacta(double monto) {
+  final int centavosTotales = (monto.abs() * 100).round();
+  final String enteros = (centavosTotales ~/ 100).toString();
+  final String decimales = (centavosTotales % 100).toString().padLeft(2, '0');
+  final String signo = monto < 0 ? '-' : '';
+  return '$signo\$${_separarMiles(enteros)},$decimales';
 }

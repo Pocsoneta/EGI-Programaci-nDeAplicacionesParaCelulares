@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../data/gasto_repository.dart';
 import '../data/grupo_repository.dart';
-import '../data/miembro_grupo_repository.dart';
 import '../model/model.dart';
+import '../util/grupo_calculos.dart';
 import '../util/utils.dart';
+import 'anadir_gasto_grupo_screen.dart';
+import 'reembolsos_screen.dart';
 
-// Ficha de un grupo: sus integrantes y la deuda individual de cada uno.
-//
-// Desde aca se cargan las deudas ("me debe" / "le debo"), se registran los
-// pagos y cobros (que se convierten en gastos, conectados al saldo del
-// inicio) y se agregan o quitan integrantes. Cualquier cambio se refleja en
-// el saldo total del grupo (la suma de todas las deudas).
+// Ficha de un grupo con dos pestañas: Gastos (lo que se pagó y se divide) y
+// Saldos (cuánto te deben o debés, calculado desde los gastos).
 class GrupoDetalleScreen extends StatefulWidget {
   final Grupo grupo;
 
@@ -22,115 +19,50 @@ class GrupoDetalleScreen extends StatefulWidget {
 }
 
 class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
-  late Future<List<MiembroGrupo>> _miembrosFuture;
+  static const Color _azul = Color(0xFF4C68FF);
+  static const Color _azulOscuro = Color(0xFF1E3C72);
+
+  late Future<DatosGrupo> _datosFuture;
+  bool _verSaldos = false;
 
   @override
   void initState() {
     super.initState();
-    _miembrosFuture = _cargar();
+    _datosFuture = _cargar();
   }
 
-  Future<List<MiembroGrupo>> _cargar() {
-    return MiembroGrupoRepository().getMiembros(widget.grupo.id!);
+  Future<DatosGrupo> _cargar() {
+    return GrupoRepository().cargarGrupo(widget.grupo);
   }
 
-  // Recarga la lista y sincroniza el grupo (saldo total e integrantes)
-  // con las deudas individuales recien modificadas.
-  Future<void> _trasCambio() async {
-    final List<MiembroGrupo> miembros = await _cargar();
-    widget.grupo.saldo = totalDeudasGrupo(miembros).round();
-    widget.grupo.integrantes = miembros.length;
-    await GrupoRepository().updateGrupo(widget.grupo);
-    if (mounted) {
-      setState(() {
-        _miembrosFuture = Future<List<MiembroGrupo>>.value(miembros);
-      });
-    }
+  void _recargar() {
+    final Future<DatosGrupo> futuro = _cargar();
+    setState(() {
+      _datosFuture = futuro;
+    });
   }
 
-  // Agrega un integrante nuevo (sin deuda cargada todavia).
-  Future<void> _agregar() async {
-    final MiembroGrupo? creado = await showDialog<MiembroGrupo>(
-      context: context,
-      builder: (context) => _DialogoMiembro(grupoId: widget.grupo.id!),
-    );
-    if (creado == null) {
-      return;
-    }
-    await MiembroGrupoRepository().addMiembro(creado);
-    await _trasCambio();
+  void _mostrar(String mensaje) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
-  // Edita el nombre o la deuda de un integrante existente.
-  Future<void> _editar(MiembroGrupo miembro) async {
-    final MiembroGrupo? guardado = await showDialog<MiembroGrupo>(
-      context: context,
-      builder: (context) => _DialogoMiembro(
-        grupoId: widget.grupo.id!,
-        miembro: miembro,
+  Future<void> _anadirGasto(DatosGrupo datos, {GastoGrupo? gasto}) async {
+    final bool? guardado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => AnadirGastoGrupoScreen(datos: datos, gasto: gasto),
       ),
     );
-    if (guardado == null) {
-      return;
+    if (guardado == true && mounted) {
+      _recargar();
     }
-    await MiembroGrupoRepository().updateMiembro(guardado);
-    await _trasCambio();
   }
 
-  // Registra un pago (le debo) o un cobro (me debe): mueve la deuda hacia
-  // cero y crea el gasto correspondiente para que impacte en el saldo.
-  Future<void> _pagarCobrar(MiembroGrupo miembro, {required bool esPago}) async {
-    final double? monto = await showDialog<double>(
-      context: context,
-      builder: (context) =>
-          _DialogoMontoMiembro(miembro: miembro, esPago: esPago),
-    );
-    if (monto == null || monto <= 0 || !mounted) {
-      return;
-    }
-
-    if (esPago) {
-      // Le pago: mi deuda baja. El pago es plata que sale -> gasto positivo.
-      miembro.deuda += monto;
-      await GastoRepository().addGasto(Gasto(
-        'Pago a ${miembro.nombre}',
-        monto,
-        'General',
-        fechaHoy(),
-        0,
-        0,
-        0,
-      ));
-    } else {
-      // Me pagan: mi deuda baja. El cobro es plata que entra -> gasto negativo.
-      miembro.deuda -= monto;
-      await GastoRepository().addGasto(Gasto(
-        'Cobro de ${miembro.nombre}',
-        -monto,
-        'General',
-        fechaHoy(),
-        0,
-        0,
-        0,
-      ));
-    }
-
-    // Evita residuos de coma flotante (ej. 1000 - 999.999... = 0.000001).
-    if (miembro.deuda.abs() < 0.005) {
-      miembro.deuda = 0;
-    }
-
-    await MiembroGrupoRepository().updateMiembro(miembro);
-    await _trasCambio();
-  }
-
-  // Elimina un integrante despues de confirmar.
-  Future<void> _eliminar(MiembroGrupo miembro) async {
+  Future<void> _eliminarGasto(GastoGrupo gasto) async {
     final bool? confirmado = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar integrante'),
-        content: Text('¿Querés eliminar "${miembro.nombre}" del grupo?'),
+        title: const Text('Eliminar gasto'),
+        content: Text('¿Querés eliminar "${gasto.titulo}"? Tu parte también se quita de tus gastos.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -143,433 +75,380 @@ class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
         ],
       ),
     );
-    if (confirmado == true) {
-      await MiembroGrupoRepository().deleteMiembro(miembro.id!);
-      await _trasCambio();
+    if (confirmado != true || !mounted) {
+      return;
+    }
+    await GrupoRepository().eliminarGasto(gasto);
+    _recargar();
+  }
+
+  Future<void> _anadirParticipante(DatosGrupo datos) async {
+    final TextEditingController controlador = TextEditingController();
+    final String? nombre = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Añadir participante'),
+        content: TextField(
+          controller: controlador,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nombre'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(controlador.text.trim()),
+            child: const Text('Añadir'),
+          ),
+        ],
+      ),
+    );
+    controlador.dispose();
+    if (nombre == null || nombre.isEmpty || !mounted) {
+      return;
+    }
+    final bool repetido = datos.participantes
+        .any((Participante p) => p.nombre.toLowerCase() == nombre.toLowerCase());
+    if (repetido) {
+      _mostrar('Ya hay un participante con ese nombre');
+      return;
+    }
+    await GrupoRepository().addParticipante(
+      Participante(widget.grupo.id!, nombre, false),
+    );
+    _recargar();
+  }
+
+  Future<void> _eliminarGrupo() async {
+    final bool? confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar grupo'),
+        content: Text(
+          '¿Querés eliminar "${widget.grupo.nombre}" con todos sus gastos? Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) {
+      return;
+    }
+    await GrupoRepository().deleteGrupo(widget.grupo.id!);
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _verReembolsos() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => ReembolsosScreen(grupo: widget.grupo)),
+    );
+    if (mounted) {
+      _recargar();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
-      appBar: AppBar(
-        title: Text(
-          widget.grupo.nombre,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: FutureBuilder<List<MiembroGrupo>>(
-        future: _miembrosFuture,
-        builder: (context, snapshot) {
-          final List<MiembroGrupo> miembros = snapshot.data ?? <MiembroGrupo>[];
-          return _buildContenido(miembros);
-        },
-      ),
+    return FutureBuilder<DatosGrupo>(
+      future: _datosFuture,
+      builder: (context, snapshot) {
+        final DatosGrupo? datos = snapshot.data;
+        return Scaffold(
+          backgroundColor: const Color(0xFFF6F8FC),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            actions: [
+              if (datos != null)
+                PopupMenuButton<String>(
+                  tooltip: 'Opciones del grupo',
+                  onSelected: (valor) {
+                    if (valor == 'participante') {
+                      _anadirParticipante(datos);
+                    } else if (valor == 'eliminar') {
+                      _eliminarGrupo();
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(value: 'participante', child: Text('Añadir participante')),
+                    PopupMenuItem(value: 'eliminar', child: Text('Eliminar grupo')),
+                  ],
+                ),
+            ],
+          ),
+          body: datos == null
+              ? const Center(child: CircularProgressIndicator())
+              : _buildContenido(datos),
+          bottomNavigationBar: datos == null || _verSaldos
+              ? null
+              : SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        backgroundColor: _azul,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: () => _anadirGasto(datos),
+                      child: const Text('Añadir gasto', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
+        );
+      },
     );
   }
 
-  Widget _buildContenido(List<MiembroGrupo> miembros) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildResumen(miembros),
-          const SizedBox(height: 20),
-          const Text(
-            'Integrantes',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          if (miembros.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                'Aún no tenés integrantes cargados.',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+  Widget _buildContenido(DatosGrupo datos) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      children: [
+        Center(
+          child: Column(
+            children: [
+              Text(widget.grupo.emoji, style: const TextStyle(fontSize: 44)),
+              const SizedBox(height: 4),
+              Text(
+                widget.grupo.nombre,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _azulOscuro),
               ),
-            )
-          else
-            ...miembros.map((MiembroGrupo miembro) => _buildItemMiembro(miembro)),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: _agregar,
-            icon: const Icon(Icons.person_add_alt_outlined),
-            label: const Text('Agregar integrante'),
+            ],
           ),
+        ),
+        const SizedBox(height: 16),
+        SegmentedButton<bool>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(value: false, label: Text('Gastos')),
+            ButtonSegment(value: true, label: Text('Saldos')),
+          ],
+          selected: {_verSaldos},
+          onSelectionChanged: (Set<bool> sel) => setState(() => _verSaldos = sel.first),
+        ),
+        const SizedBox(height: 16),
+        if (_verSaldos) ..._saldos(datos) else ..._gastos(datos),
+      ],
+    );
+  }
+
+  List<Widget> _gastos(DatosGrupo datos) {
+    final int? yo = datos.yoId;
+    final double misGastos = datos.partes
+        .where((ParteGasto p) => p.participanteId == yo)
+        .fold(0.0, (double total, ParteGasto p) => total + p.monto);
+    final double totales = datos.gastos.fold(0.0, (double total, GastoGrupo g) => total + g.monto);
+
+    return [
+      Row(
+        children: [
+          Expanded(child: _estadistica('Mis gastos', formatearMonedaExacta(misGastos))),
+          Expanded(child: _estadistica('Gastos totales', formatearMonedaExacta(totales))),
         ],
       ),
+      const SizedBox(height: 16),
+      if (datos.gastos.isEmpty)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Text(
+            'Aún no hay gastos. Tocá "Añadir gasto" para empezar a registrar y dividir tus gastos.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54),
+          ),
+        )
+      else
+        ...datos.gastos.map((GastoGrupo gasto) => _tarjetaGasto(datos, gasto)),
+    ];
+  }
+
+  Widget _estadistica(String etiqueta, String valor) {
+    return Column(
+      children: [
+        Text(etiqueta, style: const TextStyle(color: Colors.black45, fontSize: 12)),
+        const SizedBox(height: 4),
+        Text(valor, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+      ],
     );
   }
 
-  // Tarjeta de resumen: el saldo total del grupo (suma de las deudas).
-  Widget _buildResumen(List<MiembroGrupo> miembros) {
-    final double total = totalDeudasGrupo(miembros);
-    final Color color = total > 0
-        ? Colors.green
-        : total < 0
-            ? Colors.redAccent
-            : Colors.grey;
-    final String texto = total > 0
-        ? 'Te deben ${formatearMoneda(total)}'
-        : total < 0
-            ? 'Debés ${formatearMoneda(total.abs())}'
-            : 'Todo saldado';
+  Widget _tarjetaGasto(DatosGrupo datos, GastoGrupo gasto) {
+    final int? yo = datos.yoId;
+    final ParteGasto? miParte = datos.partes
+        .where((ParteGasto p) => p.gastoId == gasto.id && p.participanteId == yo)
+        .firstOrNull;
+    final String detalle = miParte == null
+        ? '${datos.fraseQuienPago(gasto)} · no te toca'
+        : '${datos.fraseQuienPago(gasto)} · tu parte ${formatearMonedaExacta(miParte.monto)}';
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Total del grupo',
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  texto,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: color,
+            child: InkWell(
+              onTap: () => _anadirGasto(datos, gasto: gasto),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(gasto.titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${formatearFecha(gasto.fecha)} · $detalle',
+                    style: const TextStyle(color: Colors.black45, fontSize: 12),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           Text(
-            '${miembros.length} integrantes',
-            style: const TextStyle(fontSize: 12, color: Colors.black54),
+            formatearMonedaExacta(gasto.monto),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Acciones del gasto',
+            onSelected: (valor) {
+              if (valor == 'editar') {
+                _anadirGasto(datos, gasto: gasto);
+              } else if (valor == 'eliminar') {
+                _eliminarGasto(gasto);
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'editar', child: Text('Editar')),
+              PopupMenuItem(value: 'eliminar', child: Text('Eliminar')),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // Fila de cada integrante con su deuda individual y sus acciones.
-  Widget _buildItemMiembro(MiembroGrupo miembro) {
-    // Deuda con signo para el usuario: me debe (verde) / le debo (rojo).
-    final Color color = miembro.deuda > 0
+  List<Widget> _saldos(DatosGrupo datos) {
+    final double saldo = datos.miSaldo;
+    final bool teDeben = saldo > 0.005;
+    final bool debes = saldo < -0.005;
+    final String titulo = teDeben
+        ? 'Te deben'
+        : debes
+            ? 'Debés'
+            : 'Todo saldado';
+    final Color color = teDeben
         ? Colors.green
-        : miembro.deuda < 0
+        : debes
             ? Colors.redAccent
             : Colors.grey;
-    final String texto = miembro.deuda > 0
-        ? 'Me debe ${formatearMoneda(miembro.deuda)}'
-        : miembro.deuda < 0
-            ? 'Le debés ${formatearMoneda(miembro.deuda.abs())}'
-            : 'Al día';
+
+    return [
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          children: [
+            Text(titulo, style: const TextStyle(color: Colors.black54)),
+            const SizedBox(height: 4),
+            Text(
+              saldo.abs() < 0.005 ? 'Sin deudas' : formatearMonedaExacta(saldo.abs()),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+      OutlinedButton.icon(
+        onPressed: () => _verReembolsos(),
+        icon: const Icon(Icons.swap_horiz),
+        label: const Text('Ver reembolsos'),
+      ),
+      const SizedBox(height: 20),
+      const Text('Saldos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _azulOscuro)),
+      const SizedBox(height: 8),
+      ...datos.participantes.map((Participante p) => _filaSaldo(datos, p)),
+    ];
+  }
+
+  Widget _filaSaldo(DatosGrupo datos, Participante p) {
+    final int centavos = datos.netosEnCentavos[p.id] ?? 0;
+    final Color color = centavos > 0
+        ? Colors.green
+        : centavos < 0
+            ? Colors.redAccent
+            : Colors.grey;
+    final String monto = centavos == 0
+        ? formatearMonedaExacta(0)
+        : '${centavos > 0 ? '+' : '-'}${formatearMonedaExacta(centavos.abs() / 100)}';
+    final List<Reembolso> deudas = datos.reembolsos
+        .where((Reembolso r) => r.deudorId == p.id || r.acreedorId == p.id)
+        .toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: const Color(0xFF1E3C72).withAlpha(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          shape: const RoundedRectangleBorder(side: BorderSide.none),
+          leading: CircleAvatar(
+            backgroundColor: _azul.withAlpha(30),
             child: Text(
-              miembro.nombre.isEmpty
-                  ? '?'
-                  : miembro.nombre.substring(0, 1).toUpperCase(),
-              style: const TextStyle(
-                color: Color(0xFF1E3C72),
-                fontWeight: FontWeight.bold,
-              ),
+              p.nombre.isEmpty ? '?' : p.nombre.substring(0, 1).toUpperCase(),
+              style: const TextStyle(color: _azul, fontWeight: FontWeight.bold),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              miembro.nombre,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-          ),
-          Text(
-            texto,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-              color: color,
-            ),
-          ),
-          PopupMenuButton<String>(
-            tooltip: 'Acciones de ${miembro.nombre}',
-            onSelected: (valor) {
-              if (valor == 'editar') {
-                _editar(miembro);
-              } else if (valor == 'pagar') {
-                _pagarCobrar(miembro, esPago: true);
-              } else if (valor == 'cobrar') {
-                _pagarCobrar(miembro, esPago: false);
-              } else if (valor == 'eliminar') {
-                _eliminar(miembro);
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'editar', child: Text('Editar deuda')),
-              // Cada accion aparece solo si tiene sentido con la deuda actual.
-              if (miembro.deuda < 0)
-                const PopupMenuItem(value: 'pagar', child: Text('Pagar')),
-              if (miembro.deuda > 0)
-                const PopupMenuItem(value: 'cobrar', child: Text('Me pagan')),
-              const PopupMenuItem(value: 'eliminar', child: Text('Eliminar')),
-            ],
-          ),
-        ],
+          title: Text(p.nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: p.esYo ? const Text('Personal', style: TextStyle(color: _azul, fontSize: 12)) : null,
+          trailing: Text(monto, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+          children: deudas.isEmpty
+              ? const [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Sin deudas pendientes.', style: TextStyle(color: Colors.black54)),
+                  ),
+                ]
+              : deudas.map((Reembolso r) => _lineaDeuda(datos, p, r)).toList(),
+        ),
       ),
     );
   }
-}
 
-// Dialogo para dar de alta o editar un integrante: nombre y deuda inicial
-// ("me debe" o "le debo"). Con monto 0 el integrante queda al dia.
-class _DialogoMiembro extends StatefulWidget {
-  final int grupoId;
-  final MiembroGrupo? miembro; // null -> alta, con valor -> edicion
-
-  const _DialogoMiembro({required this.grupoId, this.miembro});
-
-  @override
-  State<_DialogoMiembro> createState() => _DialogoMiembroState();
-}
-
-class _DialogoMiembroState extends State<_DialogoMiembro> {
-  final _formKey = GlobalKey<FormState>();
-  final _nombreController = TextEditingController();
-  final _montoController = TextEditingController();
-  late bool _meDebe;
-
-  bool get _esEdicion => widget.miembro != null;
-
-  @override
-  void initState() {
-    super.initState();
-    final MiembroGrupo? miembro = widget.miembro;
-    if (miembro != null) {
-      _nombreController.text = miembro.nombre;
-      _montoController.text = miembro.deuda.abs().toStringAsFixed(0);
-      _meDebe = miembro.deuda >= 0;
+  // Frase de una deuda desde la perspectiva de la persona desplegada.
+  Widget _lineaDeuda(DatosGrupo datos, Participante p, Reembolso r) {
+    final String deudor = datos.nombreSimple(r.deudorId);
+    final String acreedor = datos.nombreSimple(r.acreedorId);
+    final String monto = formatearMonedaExacta(r.monto);
+    final String frase;
+    if (p.esYo && r.acreedorId == p.id) {
+      frase = '$deudor te debe $monto';
+    } else if (p.esYo) {
+      frase = 'Le debés $monto a $acreedor';
     } else {
-      _montoController.text = '0';
-      _meDebe = true;
+      frase = '$deudor le debe $monto a $acreedor';
     }
-  }
-
-  @override
-  void dispose() {
-    _nombreController.dispose();
-    _montoController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _guardar() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-    final double monto =
-        double.tryParse(_montoController.text.replaceAll(',', '.')) ?? 0;
-    // La deuda se guarda con signo segun la direccion elegida.
-    final double deuda = (_meDebe ? 1 : -1) * monto;
-    Navigator.of(context).pop(MiembroGrupo(
-      widget.grupoId,
-      _nombreController.text.trim(),
-      deuda,
-      widget.miembro?.id,
-    ));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(_esEdicion ? 'Deuda de ${widget.miembro!.nombre}' : 'Integrante nuevo'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: _nombreController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => (value == null || value.trim().isEmpty)
-                    ? 'Ingresá un nombre'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                '¿Quién le debe a quién?',
-                style: TextStyle(fontSize: 12, color: Colors.black54),
-              ),
-              const SizedBox(height: 8),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'meDebe', label: Text('Me debe')),
-                  ButtonSegment(value: 'leDebo', label: Text('Le debés')),
-                ],
-                selected: {_meDebe ? 'meDebe' : 'leDebo'},
-                onSelectionChanged: (seleccion) =>
-                    setState(() => _meDebe = seleccion.first == 'meDebe'),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _montoController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Monto',
-                  prefixText: '\$',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  final double? monto =
-                      double.tryParse((value ?? '').replaceAll(',', '.'));
-                  if (monto == null || monto < 0) {
-                    return 'Ingresá un monto valido';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(frase, style: const TextStyle(fontSize: 13)),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(null),
-          child: const Text('Cancelar'),
-        ),
-        ElevatedButton(
-          onPressed: _guardar,
-          child: Text(_esEdicion ? 'Guardar cambios' : 'Agregar'),
-        ),
-      ],
-    );
-  }
-}
-
-// Dialogo para pagarle o cobrarle a un integrante.
-//
-// `esPago == true`  -> le pagas (tu deuda baja; crea un gasto positivo).
-// `esPago == false` -> te pagan (tu deuda baja; crea un gasto negativo).
-// En ambos casos el monto no puede superar la deuda individual.
-class _DialogoMontoMiembro extends StatefulWidget {
-  final MiembroGrupo miembro;
-  final bool esPago;
-
-  const _DialogoMontoMiembro({required this.miembro, required this.esPago});
-
-  @override
-  State<_DialogoMontoMiembro> createState() => _DialogoMontoMiembroState();
-}
-
-class _DialogoMontoMiembroState extends State<_DialogoMontoMiembro> {
-  final _formKey = GlobalKey<FormState>();
-  final _montoController = TextEditingController();
-
-  double get _maximo => widget.miembro.deuda.abs();
-
-  @override
-  void dispose() {
-    _montoController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _guardar() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-    final double monto =
-        double.tryParse(_montoController.text.replaceAll(',', '.')) ?? 0;
-    Navigator.of(context).pop(monto);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final MiembroGrupo miembro = widget.miembro;
-    return AlertDialog(
-      title: Text(
-        widget.esPago ? 'Pagarle a "${miembro.nombre}"' : '"${miembro.nombre}" te paga',
-      ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.esPago
-                    ? 'Le debés ${formatearMoneda(_maximo)}'
-                    : 'Te debe ${formatearMoneda(_maximo)}',
-                style: const TextStyle(fontSize: 13, color: Colors.black54),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _montoController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: widget.esPago ? 'Monto a pagar' : 'Monto que te pagan',
-                  prefixText: '\$',
-                  border: const OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Ingresá el monto';
-                  }
-                  final double? monto =
-                      double.tryParse(value.replaceAll(',', '.'));
-                  if (monto == null || monto <= 0) {
-                    return 'Ingresá un monto valido';
-                  }
-                  if (monto > _maximo) {
-                    return widget.esPago
-                        ? 'No podés pagar más de ${formatearMoneda(_maximo)}'
-                        : 'No te pueden pagar más de ${formatearMoneda(_maximo)}';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(null),
-          child: const Text('Cancelar'),
-        ),
-        ElevatedButton(
-          onPressed: _guardar,
-          child: Text(widget.esPago ? 'Pagar' : 'Recibir'),
-        ),
-      ],
     );
   }
 }

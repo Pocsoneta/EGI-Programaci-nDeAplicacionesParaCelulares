@@ -18,7 +18,6 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter_application_1/main.dart';
 import 'package:flutter_application_1/data/dbhelper.dart';
 import 'package:flutter_application_1/data/fuente_datos.dart';
-import 'package:flutter_application_1/data/grupo_repository.dart';
 import 'package:flutter_application_1/data/gasto_repository.dart';
 import 'package:flutter_application_1/data/ingreso_repository.dart';
 import 'package:flutter_application_1/data/meta_ahorro_repository.dart';
@@ -79,7 +78,6 @@ void main() {
 
       expect(await IngresoRepository().getIngresos(), hasLength(2));
       expect(await MetaAhorroRepository().getMetas(), hasLength(3));
-      expect(await GrupoRepository().getGrupos(), hasLength(4));
       expect(await ServicioHogarRepository().getServicios(), hasLength(4));
 
       // ---------------------------------------------------------------

@@ -8,6 +8,120 @@ Estado al cierre de este registro: `flutter analyze` sin issues y
 
 ---
 
+## [Grupos estilo Tricount] — 2026-11-17
+
+Rediseño grande de la sección Grupo, inspirado en Tricount. Decisiones tomadas
+con el usuario: deudas calculadas desde los gastos (se elimina la carga manual),
+en el Saldo total cuenta solo tu parte, se quita la invitación (no hay
+servidor), los grupos anteriores se borran y la división admite partes iguales
+o montos exactos con centavos.
+
+### Modelo y base de datos (versión 2)
+
+- Entidades nuevas en `lib/model/model.dart`: `Grupo` (nombre y emoji),
+  `Participante` (`esYo`), `GastoGrupo` (título, monto, quién pagó, fecha y
+  `movimientoId`), `ParteGasto` (cuánto le toca a cada uno) y `PagoGrupo`
+  (reembolso registrado).
+- Tablas nuevas: `grupos`, `grupo_participantes`, `grupo_gastos`,
+  `grupo_gasto_partes`, `grupo_pagos`. Se elimina `grupo_miembros`.
+- La base de cada usuario pasa a **versión 2**. `_migrarGrupos` borra los grupos
+  del modelo anterior una sola vez, al actualizar (`onUpgrade`). En bases nuevas
+  o sin versión también se ejecuta en `onCreate`.
+- `DbHelper.eliminarDonde` para borrados por condición.
+
+### Cálculos (`lib/util/grupo_calculos.dart`)
+
+- `saldosNetosEnCentavos`: lo pagado menos lo que toca, más reembolsos.
+- `calcularReembolsos`: empareja deudores con acreedores hasta dejar todo en cero.
+- `dividirIgual`: reparto en centavos exactos (la suma siempre es el total).
+- `formatearMonedaExacta` (utils): `$33.333,33`.
+
+### Saldo total
+
+- Al guardar un gasto compartido, tu parte se registra como gasto personal
+  (categoría General, concepto `Grupo: título`). Si el gasto no te toca, no se
+  registra nada.
+- Los reembolsos **no crean movimientos**. La parte propia ya quedó registrada al
+  crear el gasto, así que registrar un pago no la contaría dos veces.
+- Al editar o eliminar un gasto compartido se reemplaza o quita su movimiento.
+  Al eliminar un grupo se quitan todos sus movimientos.
+
+### Pantallas
+
+- `groups_screen.dart`: lista con emoji, participantes, cantidad de gastos y tu
+  saldo (Te deben / Debés / Saldado).
+- `crear_grupo_screen.dart`: título, emoji y participantes (vos quedás como
+  "Personal").
+- `grupo_detalle_screen.dart`: pestañas Gastos y Saldos, botón Añadir gasto,
+  añadir participante, eliminar grupo.
+- `anadir_gasto_grupo_screen.dart`: alta y edición con pagó, fecha, división
+  igual o exacta.
+- `reembolsos_screen.dart`: reembolsos pendientes, *Solicitar* (copia el mensaje
+  de cobro) y *¡Está pagado!*, más la lista de pagos registrados con opción de
+  quitar.
+
+### Correcciones tras probar en PC
+
+- **Crash al eliminar un grupo**: la barra inferior usaba una muesca
+  (`CircularNotchedRectangle`). Su recorte consulta la geometría del `Scaffold`
+  durante el hit-test, y eso falla cuando la pantalla cambia (por ejemplo al
+  volver de eliminar un grupo). Se quitó la muesca: el "+" sigue centrado, sin
+  recorte. Nota: el test no lograba reproducir el crash con toques simulados;
+  la corrección elimina la causa conocida, pero conviene volver a probarlo.
+- **Desborde en el formulario de gasto (pantallas angostas)**: "Pagado por" y
+  "Cuándo" pasaron a ir uno debajo del otro, y el selector "Dividir" ocupa el
+  ancho completo. Test en `test/grupos_test.dart`.
+
+### Quién debe a quién
+
+- **Reembolsos** separados en *Te deben*, *Tenés que pagar* y *Otros pagos del
+  grupo*. Tu nombre aparece como "(yo)" en todas las pantallas del grupo.
+- **Saldos**: cada persona se despliega y muestra sus deudas: "X te debe $Y" o
+  "Le debés $Y a X" para vos, y "X le debe $Y a Z" para los demás.
+- `DatosGrupo.nombreSimple` para las frases sin la marca "(yo)".
+- Test en `test/grupos_test.dart` (despliegue de Saldos).
+
+### Varias personas pueden pagar el mismo gasto
+
+- **"Quién puso plata"** en el formulario del gasto: en vez de un único
+  "Pagado por", ahora cada participante tiene un casillero y su monto. Un gasto
+  puede tener uno o varios que pusieron plata; la suma debe ser el total del
+  gasto (se muestra "Suma $X de $Y", en rojo si no cuadra).
+- Los montos que se escriben a mano no se recalculan solos; los que no se
+  tocaron se reparten en lo que falta del total.
+- Tabla nueva `grupo_gasto_aportes` (base versión 3). Los gastos de las bases
+  de la versión 2 pasan a tener un solo aporte, el que pagaba, por el total.
+- **Saldos**: cada aporte se acredita a quien lo puso, así dos personas pueden
+  haber pagado partes distintas del mismo gasto.
+- **Ficha del gasto**: muestra "Pagó X" si puso una persona o "Pusieron X e Y"
+  si pusieron varias.
+- Tests: `test/grupos_test.dart` (cálculo con dos aportes, guardado con dos
+  aportes, migración v2→v3 y la pantalla). 64 tests en verde.
+
+### Ajuste de un diseño anterior
+
+- El test de Grupo ya no busca "Sin actividad para mostrar.", que era un resumen
+  del diseño anterior.
+
+### Errores y decisiones a revisar
+
+- **Corrección de la propuesta**: en el plan se había dicho que cada reembolso
+  registraría un gasto o un ingreso. Eso habría contado dos veces la parte
+  propia (el gasto ya se registró al crear el gasto), así que se descartó.
+- Los gastos personales que creó el modelo anterior (por ejemplo `Pago a Juan`)
+  no se borran: son movimientos que ya ocurrieron. Pueden verse en Gastos.
+- Un reembolso que se registró por error se quita desde *Pagos registrados*.
+- Quedan fuera: invitar participantes, QR, reembolsos parciales y cambiar la
+  moneda por grupo.
+
+### Tests
+
+- 64 tests en verde. Nuevos: `test/grupos_test.dart` (cálculos, Saldo total,
+  migración de la base vieja y un flujo completo por pantalla).
+- Se quitaron los tests del modelo anterior de `test/mejoras_test.dart`.
+
+---
+
 ## [Ajustes de testeo] — 2026-11-10
 
 Cambios pedidos por los compañeros que probaron la app.

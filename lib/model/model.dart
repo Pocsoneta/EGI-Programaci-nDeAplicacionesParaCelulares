@@ -133,15 +133,11 @@ class MetaAhorro {
 class Grupo {
   int? id; // null hasta persistir
   String nombre; // Nombre del grupo
-  int integrantes; // Cantidad de personas
-  int saldo; // + te deben | - debes | 0 saldado
-  String icono; // Clave del icono (ej. 'asado', 'viaje', 'futbol', 'otro')
+  String emoji; // Icono del grupo (un emoji)
 
-  // Constructor estandar: para grupos nuevos creados en la interfaz visual.
-  Grupo(this.nombre, this.integrantes, this.saldo, this.icono, [this.id]);
+  Grupo(this.nombre, this.emoji, [this.id]);
 
-  // Constructor nombrado: para grupos recuperados desde la base de datos.
-  Grupo.withId(this.id, this.nombre, this.integrantes, this.saldo, this.icono);
+  Grupo.withId(this.id, this.nombre, this.emoji);
 
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{};
@@ -149,41 +145,27 @@ class Grupo {
       map['id'] = id;
     }
     map['nombre'] = nombre;
-    map['integrantes'] = integrantes;
-    map['saldo'] = saldo;
-    map['icono'] = icono;
+    map['emoji'] = emoji;
     return map;
   }
 
   factory Grupo.fromObject(dynamic o) => Grupo.withId(
         o['id'],
         o['nombre'] ?? '',
-        (o['integrantes'] as num?)?.toInt() ?? 0,
-        (o['saldo'] as num?)?.toInt() ?? 0,
-        o['icono'] ?? 'otro',
+        o['emoji'] ?? '🧾',
       );
 }
 
-/// Integrante de un grupo y su deuda INDIVIDUAL con el usuario.
-///
-/// `deuda` se guarda con signo desde la perspectiva del usuario:
-///   * > 0 -> el integrante me debe
-///   * < 0 -> le debo al integrante
-///   * 0   -> esta al dia
-///
-/// El saldo total del grupo (Grupo.saldo) es la suma de las deudas de sus
-/// integrantes: se recalcula cada vez que una deuda cambia.
-class MiembroGrupo {
+/// Persona que participa de un grupo. `esYo` marca al usuario de la cuenta.
+class Participante {
   int? id; // null hasta persistir
   int grupoId; // Grupo al que pertenece
-  String nombre; // Nombre del integrante
-  double deuda; // Deuda individual (con signo, perspectiva del usuario)
+  String nombre; // Nombre de la persona
+  bool esYo; // true para el usuario de la cuenta
 
-  // Constructor estandar: para integrantes nuevos creados en la interfaz.
-  MiembroGrupo(this.grupoId, this.nombre, this.deuda, [this.id]);
+  Participante(this.grupoId, this.nombre, this.esYo, [this.id]);
 
-  // Constructor nombrado: para integrantes recuperados desde la base.
-  MiembroGrupo.withId(this.id, this.grupoId, this.nombre, this.deuda);
+  Participante.withId(this.id, this.grupoId, this.nombre, this.esYo);
 
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{};
@@ -192,15 +174,168 @@ class MiembroGrupo {
     }
     map['grupoId'] = grupoId;
     map['nombre'] = nombre;
-    map['deuda'] = deuda;
+    map['esYo'] = esYo ? 1 : 0;
     return map;
   }
 
-  factory MiembroGrupo.fromObject(dynamic o) => MiembroGrupo.withId(
+  factory Participante.fromObject(dynamic o) => Participante.withId(
         o['id'],
         (o['grupoId'] as num?)?.toInt() ?? 0,
         o['nombre'] ?? '',
-        (o['deuda'] as num?)?.toDouble() ?? 0.0,
+        (o['esYo'] as num?)?.toInt() == 1,
+      );
+}
+
+/// Gasto compartido: lo pagó un participante y se divide entre varios.
+/// `movimientoId` apunta al gasto personal que registra TU parte en el Saldo
+/// total (0 si no te toca ninguna parte).
+class GastoGrupo {
+  int? id; // null hasta persistir
+  int grupoId; // Grupo al que pertenece
+  String titulo; // Descripcion (ej. "Carne")
+  double monto; // Total del gasto
+  int pagadoPor; // Id del participante que pago
+  String fecha; // YYYY-MM-DD
+  int movimientoId; // Gasto personal con tu parte (0 si no hay)
+
+  GastoGrupo(this.grupoId, this.titulo, this.monto, this.pagadoPor, this.fecha,
+      [this.id, this.movimientoId = 0]);
+
+  GastoGrupo.withId(this.id, this.grupoId, this.titulo, this.monto,
+      this.pagadoPor, this.fecha, this.movimientoId);
+
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{};
+    if (id != null) {
+      map['id'] = id;
+    }
+    map['grupoId'] = grupoId;
+    map['titulo'] = titulo;
+    map['monto'] = monto;
+    map['pagadoPor'] = pagadoPor;
+    map['fecha'] = fecha;
+    map['movimientoId'] = movimientoId;
+    return map;
+  }
+
+  factory GastoGrupo.fromObject(dynamic o) => GastoGrupo.withId(
+        o['id'],
+        (o['grupoId'] as num?)?.toInt() ?? 0,
+        o['titulo'] ?? '',
+        (o['monto'] as num?)?.toDouble() ?? 0.0,
+        (o['pagadoPor'] as num?)?.toInt() ?? 0,
+        o['fecha'] ?? '',
+        (o['movimientoId'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// Parte de un gasto compartido que le toca a un participante.
+class ParteGasto {
+  int? id; // null hasta persistir
+  int gastoId; // Gasto compartido al que pertenece
+  int grupoId; // Grupo (para consultar las partes de todo el grupo)
+  int participanteId; // Quien debe esta parte
+  double monto; // Cuanto le toca
+
+  ParteGasto(this.gastoId, this.grupoId, this.participanteId, this.monto,
+      [this.id]);
+
+  ParteGasto.withId(this.id, this.gastoId, this.grupoId, this.participanteId,
+      this.monto);
+
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{};
+    if (id != null) {
+      map['id'] = id;
+    }
+    map['gastoId'] = gastoId;
+    map['grupoId'] = grupoId;
+    map['participanteId'] = participanteId;
+    map['monto'] = monto;
+    return map;
+  }
+
+  factory ParteGasto.fromObject(dynamic o) => ParteGasto.withId(
+        o['id'],
+        (o['gastoId'] as num?)?.toInt() ?? 0,
+        (o['grupoId'] as num?)?.toInt() ?? 0,
+        (o['participanteId'] as num?)?.toInt() ?? 0,
+        (o['monto'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+/// Cuánto puso una persona para pagar un gasto compartido. Un gasto puede
+/// tener varios: la suma de los aportes es el monto total del gasto.
+class AporteGasto {
+  int? id; // null hasta persistir
+  int gastoId; // Gasto compartido al que pertenece
+  int grupoId; // Grupo (para consultar los aportes de todo el grupo)
+  int participanteId; // Quien puso plata
+  double monto; // Cuanto puso
+
+  AporteGasto(this.gastoId, this.grupoId, this.participanteId, this.monto,
+      [this.id]);
+
+  AporteGasto.withId(this.id, this.gastoId, this.grupoId, this.participanteId,
+      this.monto);
+
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{};
+    if (id != null) {
+      map['id'] = id;
+    }
+    map['gastoId'] = gastoId;
+    map['grupoId'] = grupoId;
+    map['participanteId'] = participanteId;
+    map['monto'] = monto;
+    return map;
+  }
+
+  factory AporteGasto.fromObject(dynamic o) => AporteGasto.withId(
+        o['id'],
+        (o['gastoId'] as num?)?.toInt() ?? 0,
+        (o['grupoId'] as num?)?.toInt() ?? 0,
+        (o['participanteId'] as num?)?.toInt() ?? 0,
+        (o['monto'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+/// Reembolso registrado: `deudor` le pagó `monto` a `acreedor` dentro del grupo.
+/// No cambia el Saldo total: la parte propia ya se registró al crear el gasto.
+class PagoGrupo {
+  int? id; // null hasta persistir
+  int grupoId; // Grupo al que pertenece
+  int deudorId; // Quien pago
+  int acreedorId; // Quien recibio
+  double monto; // Monto pagado
+  String fecha; // YYYY-MM-DD
+
+  PagoGrupo(this.grupoId, this.deudorId, this.acreedorId, this.monto, this.fecha,
+      [this.id]);
+
+  PagoGrupo.withId(this.id, this.grupoId, this.deudorId, this.acreedorId,
+      this.monto, this.fecha);
+
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{};
+    if (id != null) {
+      map['id'] = id;
+    }
+    map['grupoId'] = grupoId;
+    map['deudorId'] = deudorId;
+    map['acreedorId'] = acreedorId;
+    map['monto'] = monto;
+    map['fecha'] = fecha;
+    return map;
+  }
+
+  factory PagoGrupo.fromObject(dynamic o) => PagoGrupo.withId(
+        o['id'],
+        (o['grupoId'] as num?)?.toInt() ?? 0,
+        (o['deudorId'] as num?)?.toInt() ?? 0,
+        (o['acreedorId'] as num?)?.toInt() ?? 0,
+        (o['monto'] as num?)?.toDouble() ?? 0.0,
+        o['fecha'] ?? '',
       );
 }
 
