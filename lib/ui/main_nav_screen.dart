@@ -272,22 +272,39 @@ class _MainNavScreenState extends State<MainNavScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         titleSpacing: 20,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+        title: Row(
           children: [
-            Text(
-              'FinanzApp',
-              style: TextStyle(
-                color: col.titulo,
-                fontWeight: FontWeight.w800,
-                fontSize: 20,
-                letterSpacing: -0.3,
-              ),
+            // Logo del proyecto, junto al nombre de la app.
+            Image.asset(
+              'assets/logo_finanzapp.png',
+              width: 34,
+              height: 34,
             ),
-            Text(
-              _monthLabel,
-              style: TextStyle(color: col.subtexto, fontSize: 12.5),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'FinanzApp',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: col.titulo,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 20,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  Text(
+                    _monthLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: col.subtexto, fontSize: 12.5),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
