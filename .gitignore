@@ -50,3 +50,7 @@ app.*.map.json
 
 # Notas locales: no se suben al repositorio.
 Ejercicios.txt
+
+# Material de la EGI (enunciados): no forma parte del codigo.
+Condicion para rendir EGI - Programacion de Aplicaciones para Celulares.pdf
+Consignas EGI - Programacion de Aplicaciones para Celulares.pdf
