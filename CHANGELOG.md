@@ -8,6 +8,23 @@ Estado al cierre de este registro: `flutter analyze` sin issues y
 
 ---
 
+## [Avisos y gráfico visibles] — 2026-11-23
+
+Dos detalles de visibilidad que aparecieron al probar la app.
+
+- **El aviso de "mensaje copiado" no se veía.** El tema definía
+  `snackBarTheme` con fondo claro (`superficie2`), pero el texto del SnackBar
+  seguía siendo claro (el de por defecto para fondo oscuro): quedaba
+  texto claro sobre fondo claro. Se quita ese ajuste y el SnackBar vuelve a
+  los colores por defecto de Material, legibles en claro y en oscuro.
+- **La categoría "General" era invisible en el Inicio.** La paleta del
+  gráfico empezaba con el mismo azul que el fondo de la tarjeta "Gastos del
+  mes" (`0xFF4C68FF`), así que la barra de esa categoría se perdía. Se saca
+  ese azul de la paleta (y el celeste, muy parecido) y se reemplazan por
+  colores que contrastan sobre el azul.
+
+---
+
 ## [Desbordes en pantallas angostas] — 2026-11-23
 
 Al reducir la ventana aparecían errores de `RenderFlex overflowed` en el

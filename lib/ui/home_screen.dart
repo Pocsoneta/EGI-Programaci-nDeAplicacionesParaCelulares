@@ -30,15 +30,17 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<_DatosInicio> _datosFuture;
 
   // Paleta estable para distinguir las categorias en el grafico.
+  // No incluye el azul de la tarjeta (0xFF4C68FF): si coincidiera, esa
+  // categoria seria invisible sobre el fondo azul de "Gastos del mes".
   static const List<Color> _colores = <Color>[
-    Color(0xFF4C68FF),
-    Color(0xFFFFA726),
-    Color(0xFF26A69A),
-    Color(0xFFEC407A),
-    Color(0xFF7E57C2),
-    Color(0xFF66BB6A),
-    Color(0xFF29B6F6),
-    Color(0xFF8D6E63),
+    Color(0xFFFFA726), // naranja
+    Color(0xFF26A69A), // verde agua
+    Color(0xFFEC407A), // rosa
+    Color(0xFF7E57C2), // violeta
+    Color(0xFF66BB6A), // verde
+    Color(0xFFFFEE58), // amarillo
+    Color(0xFF8D6E63), // marron
+    Color(0xFFAB47BC), // purpura
   ];
 
   @override

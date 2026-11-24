@@ -148,7 +148,6 @@ ThemeData _temaBase(AppColores c, Brightness brillo) {
       surfaceTintColor: Colors.transparent,
     ),
     popupMenuTheme: PopupMenuThemeData(color: c.superficie),
-    snackBarTheme: SnackBarThemeData(backgroundColor: c.superficie2),
   );
 }
 
