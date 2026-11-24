@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../util/tema.dart';
+
 class WelcomeScreen extends StatelessWidget {
   final void Function(BuildContext) onIniciarSesion;
   final void Function(BuildContext) onCrearCuenta;
@@ -13,7 +15,7 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: context.col.fondo,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -32,10 +34,10 @@ class WelcomeScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Controla tus gastos, ahorros y metas',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.black54),
+                  style: TextStyle(color: context.col.subtexto),
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton.icon(

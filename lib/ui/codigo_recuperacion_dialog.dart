@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../util/tema.dart';
+
 // Muestra el codigo de recuperacion UNA sola vez. No se puede cerrar tocando
 // afuera: hay que confirmar con "Ya lo guardé", asi no se pierde sin verlo.
 Future<void> mostrarCodigoRecuperacion(BuildContext context, String codigo) {
@@ -9,30 +11,31 @@ Future<void> mostrarCodigoRecuperacion(BuildContext context, String codigo) {
     barrierDismissible: false,
     builder: (BuildContext context) => AlertDialog(
       title: const Text('Tu código de recuperación'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+          Text(
             'Guardalo en un lugar seguro. Lo vas a necesitar si olvidás tu contraseña. '
             'Solo se muestra esta vez.',
-            style: TextStyle(fontSize: 13, color: Colors.black54),
+            style: TextStyle(fontSize: 13, color: context.col.subtexto),
           ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF6F8FC),
+              color: context.col.fondo,
               borderRadius: BorderRadius.circular(12),
             ),
             child: SelectableText(
               codigo,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2,
-                color: Color(0xFF1E3C72),
+                color: context.col.titulo,
               ),
             ),
           ),
@@ -50,6 +53,7 @@ Future<void> mostrarCodigoRecuperacion(BuildContext context, String codigo) {
             label: const Text('Copiar código'),
           ),
         ],
+        ),
       ),
       actions: [
         ElevatedButton(

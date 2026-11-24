@@ -4,7 +4,127 @@ Registro de los cambios funcionales de FinanzApp y de los errores que
 aparecieron durante su desarrollo, con su causa y cómo se resolvieron.
 
 Estado al cierre de este registro: `flutter analyze` sin issues y
-**36 tests en verde** (`flutter test`).
+**69 tests en verde** (`flutter test`).
+
+---
+
+## [Desbordes en pantallas angostas] — 2026-11-23
+
+Al reducir la ventana aparecían errores de `RenderFlex overflowed` en el
+Inicio y en Mes. Se corrigieron y se agregó un test que los cubre.
+
+### Causa y arreglo
+
+- **Ítems de gastos e ingresos del Inicio**: el monto era un `Text` fijo y, con
+  un número largo y poca pantalla, empujaba fuera de la fila. Ahora el
+  concepto va en `Expanded(flex: 3)` y el monto en `Expanded(flex: 2)` con un
+  `FittedBox(scaleDown)`: se achica solo si no entra.
+- **Encabezado "Gastos del mes"**: los dos textos pasaron a `Flexible` con
+  `maxLines: 1` y `TextOverflow.ellipsis`.
+- **Encabezado "Ingresos del mes"**: el título se envuelve en `Expanded` con
+  elipsis.
+- **Ítem de categoría y de servicio (Mes)**: mismo criterio que los ítems del
+  Inicio (concepto flexible, monto con `FittedBox`).
+- **Tarjetas de grupo**: el bloque de estado y saldo se escala con un
+  `FittedBox` si el monto es largo.
+- **Desplegables**: `isExpanded: true` en los `DropdownButtonFormField` de
+  categoría (gasto y meta). Era la causa de un desborde dentro del
+  `InputDecorator` en pantallas muy angostas.
+- **Diálogo del código de recuperación**: el contenido va ahora en un
+  `SingleChildScrollView` (antes, con poco ancho, el texto largo desbordaba en
+  vertical).
+
+### Tests
+
+- `test/pantalla_chica_test.dart`: nuevo test con una pantalla de **240 px** y
+  movimientos de monto largo (ingreso y gasto) que recorre Inicio, Mes, Grupo
+  y Ahorro. Cualquier desborde hace fallar el test. 69 tests en verde.
+
+---
+
+## [Modo oscuro] — 2026-11-23
+
+Cambio de diseño: la app se puede ver en claro u oscuro con un botón en la
+cabecera (arriba a la derecha, junto a la campana y al avatar).
+
+### Tema (`lib/util/tema.dart`)
+
+- `AppColores`, un `ThemeExtension` con la paleta **semántica** (fondo,
+  superficie, textos, pista, borde...). En modo claro devuelve exactamente los
+  colores que ya usaba la app, así que encender el modo oscuro no cambia nada
+  cuando está apagado.
+- `temaClaro()` / `temaOscuro()`: `ThemeData` con `scaffoldBackgroundColor`,
+  `AppBar`, hojas, diálogos y menús derivados de la paleta.
+- Se accede desde cualquier widget con `context.col` (extensión de
+  `BuildContext`).
+
+### Control y persistencia
+
+- `TemaControl`: `ChangeNotifier` singleton que guarda el modo y avisa a la
+  app. `main.dart` envuelve el `MaterialApp` en un `AnimatedBuilder`; al
+  alternar, todo se reconstruye con la paleta nueva.
+- La elección se guarda en `finanzapp_tema.txt` (junto a la sesión y la
+  introducción) y se lee antes del primer frame, así que al reiniciar se
+  recuerda. `DbHelper.temaOscuroGuardado()` / `guardarTemaOscuro()`.
+
+### Pantallas
+
+- Todas las pantallas pasaron de colores fijos (`Colors.white`,
+  `Color(0xFFF6F8FC)`, `Colors.black54`, el azul de títulos `0xFF1E3C72`) a la
+  paleta `context.col`. Se mantienen a propósito los degradados con texto
+  blanco (Inicio, Mes, Ahorro, bienvenida/login) y los acentos de color, que
+  funcionan bien en los dos modos.
+
+### Tests
+
+- Nuevo `test/tema_test.dart`: paleta clara intacta, tema oscuro con brillo y
+  fondo oscuro, y el botón de la cabecera encendiendo/apagando el modo con su
+  persistencia.
+- Los tests que arrancan con sesión guardada ahora esperan a que la pantalla
+  aparezca (`esperarHasta`, en `codigo_test_helper.dart`) en vez de un tiempo
+  fijo: el arranque necesita un ciclo más de E/S.
+- 68 tests en verde.
+
+---
+
+## [Mes y servicios del hogar fusionados] — 2026-11-18
+
+Las pantallas "Mes" (reporte de solo lectura) y "Servicios del hogar" (lista
+de tareas) eran casi la misma vista con distinto contenido, y cada servicio
+alimentaba al mes al registrarse como gasto. Decisiones del usuario: los
+servicios pasan a ser una sección de **Mes** con el estado del mes elegido, y
+se quita el atajo "Servicios del hogar" del menú del "+".
+
+### Pantallas
+
+- `month_screen.dart`: debajo del desglose por categoría aparece la sección
+  **Servicios del hogar**, con resumen del mes (Total / Pagado / Pendiente),
+  alta, edición, borrado y marcar como pagado. El diálogo de alta/edición se
+  mudó desde `household_screen.dart`.
+- Se elimina `household_screen.dart` y la opción **Servicios del hogar** del
+  menú del "+": quedan *Nuevo gasto* y *Nuevo ingreso*.
+
+### Estado según el mes
+
+- Los servicios no tienen fecha propia: su estado se deriva de los gastos. Un
+  servicio está **pagado en el mes M** si tiene un gasto (categoría
+  "Servicios", con su concepto) con fecha en M; si no, **pendiente**. Al
+  navegar con las flechas del mes el estado cambia junto al reporte.
+- Marcar pagado crea el gasto **fechado en el mes que se está viendo** (hoy
+  si es el mes en curso); desmarcar elimina ese gasto.
+- El campo `pagado` (el que usan las notificaciones) solo se toca cuando el
+  mes en pantalla es el mes en curso: pagar un mes viejo no cambia las
+  alertas de hoy.
+- Al cambiar un servicio se avisa a la navegación (`onServiciosCambiados`)
+  para refrescar la campana de alertas y el saldo del inicio.
+
+### Tests
+
+- `abrirHogar` / `volverDeHogar` ahora entran y salen por la pestaña Mes, y
+  el nuevo helper `tocarServicio` acerca los controles al viewport antes de
+  tocarlos (la lista se corre cuando aparecen los gastos del mes).
+- Nuevo test "Servicios del hogar: el estado sigue al mes que se está
+  viendo". 65 tests en verde.
 
 ---
 

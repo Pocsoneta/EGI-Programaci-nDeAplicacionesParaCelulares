@@ -108,6 +108,35 @@ class DbHelper {
 
   Future<String> _rutaSesion() async => _rutaDe('finanzapp_sesion.txt');
 
+  // ---------------------------------------------------------------------
+  // TEMA: recuerda si el usuario dejo activado el modo oscuro. Es una
+  // preferencia general (no por cuenta), guardada en disco como la sesion.
+  // ---------------------------------------------------------------------
+
+  Future<String> _rutaTema() async => _rutaDe('finanzapp_tema.txt');
+
+  // Devuelve true si la ultima vez se uso el modo oscuro.
+  Future<bool> temaOscuroGuardado() async {
+    try {
+      final File archivo = File(await _rutaTema());
+      if (!await archivo.exists()) {
+        return false;
+      }
+      return (await archivo.readAsString()).trim() == '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> guardarTemaOscuro(bool oscuro) async {
+    try {
+      await File(await _rutaTema())
+          .writeAsString(oscuro ? '1' : '0', flush: true);
+    } catch (_) {
+      // Sin permiso de escritura: la eleccion no se recuerda al reiniciar.
+    }
+  }
+
   // Guarda la sesion activa (se llama al iniciar sesion y al registrarse).
   Future<void> guardarSesion(int userId) async {
     try {

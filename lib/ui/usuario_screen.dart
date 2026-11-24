@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/usuario_repository.dart';
+import '../util/tema.dart';
 import 'auth_widgets.dart';
 import 'codigo_recuperacion_dialog.dart';
 import 'login_screen.dart';
@@ -93,7 +94,7 @@ class _UsuarioScreenState extends State<UsuarioScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: context.col.fondo,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -115,6 +116,7 @@ class _UsuarioScreenState extends State<UsuarioScreen> {
                       TextFormField(
                         controller: _nombreController,
                         decoration: decoracionAuth(
+                          context: context,
                           etiqueta: 'Nombre',
                           icono: Icons.person_outline,
                         ),
@@ -127,6 +129,7 @@ class _UsuarioScreenState extends State<UsuarioScreen> {
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         decoration: decoracionAuth(
+                          context: context,
                           etiqueta: 'Correo',
                           icono: Icons.mail_outline,
                         ),
@@ -139,6 +142,7 @@ class _UsuarioScreenState extends State<UsuarioScreen> {
                         controller: _passwordController,
                         obscureText: _ocultarPassword,
                         decoration: decoracionAuth(
+                          context: context,
                           etiqueta: 'Contraseña',
                           icono: Icons.lock_outline,
                           sufijo: IconButton(

@@ -4,6 +4,7 @@ import '../data/meta_ahorro_repository.dart';
 import '../data/servicio_hogar_repository.dart';
 import '../model/model.dart';
 import '../util/notificaciones.dart';
+import '../util/tema.dart';
 
 // Pantalla de notificaciones con alertas REALES de la cuenta:
 // se calcula al abrirla a partir de los servicios pendientes y las metas
@@ -38,14 +39,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: context.col.fondo,
       appBar: AppBar(
         title: const Text(
           'Notificaciones',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: context.col.superficie,
         elevation: 0,
       ),
       body: FutureBuilder<List<Notificacion>>(
@@ -59,22 +60,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               snapshot.data ?? <Notificacion>[];
 
           if (notificaciones.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.notifications_none,
+                    const Icon(Icons.notifications_none,
                         size: 56, color: Colors.grey),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
                       'No hay notificaciones por ahora.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.black54, fontSize: 14),
+                      style: TextStyle(color: context.col.subtexto, fontSize: 14),
                     ),
-                    SizedBox(height: 4),
-                    Text(
+                    const SizedBox(height: 4),
+                    const Text(
                       'Te avisamos cuando un servicio quede pendiente o se acerque la fecha de una meta.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey, fontSize: 12),
@@ -111,8 +112,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
                 subtitle: Text(
                   notificacion.detalle,
-                  style:
-                      const TextStyle(fontSize: 13, color: Colors.black54),
+                  style: TextStyle(fontSize: 13, color: context.col.subtexto),
                 ),
                 trailing: Text(
                   notificacion.tiempo,

@@ -87,9 +87,9 @@ La tarjeta **Saldo total** del inicio muestra cuánta plata hay disponible:
 (`saldoTotal` en `lib/util/utils.dart`). Todos los movimientos la modifican:
 
 - **Servicios del hogar**: al marcar un servicio como pagado se registra
-  automáticamente como gasto (categoría "Servicios", fecha de hoy), y al
-  desmarcarlo ese gasto se elimina. Si se edita un servicio pagado, el gasto
-  se actualiza junto con él.
+  automáticamente como gasto (categoría "Servicios", con la fecha del mes que
+  se está viendo), y al desmarcarlo ese gasto se elimina. Si se edita un
+  servicio pagado, el gasto se actualiza junto con él.
 - **Grupos**: tu parte de cada gasto compartido queda registrada como un
   gasto personal. Los reembolsos no cambian el saldo, porque la parte propia
   ya se contó al crear el gasto.
@@ -119,10 +119,15 @@ Inspirado en Tricount: cada grupo tiene un título con emoji, sus participantes
 - **Introducción**: al abrir la app por primera vez se muestran tres
   pantallas de bienvenida (se pueden omitir). No vuelven a aparecer.
 - **Barra inferior**: Inicio, Mes, Grupo y Ahorro, con el botón **+** en el
-  centro. Al tocarlo se abre un menú con **Nuevo gasto**, **Nuevo ingreso** y
-  **Servicios del hogar**.
+  centro. Al tocarlo se abre un menú con **Nuevo gasto** y **Nuevo ingreso**.
+- **Pantalla Mes**: reporte del mes elegido (total gastado, ingresos,
+  balance y desglose por categoría) con la sección **Servicios del hogar**
+  debajo: alta, edición, borrado y estado según el mes (pagado si tiene un
+  gasto en ese mes, pendiente si no; cambia al mover las flechas del mes).
 - **Perfil** (avatar de la cabecera): datos de la cuenta, crear otra cuenta,
   iniciar sesión con otra cuenta y cerrar sesión.
+- **Modo oscuro**: el botón de la luna/sol en la cabecera cambia entre claro y
+  oscuro. La elección se recuerda al reiniciar.
 
 ## Tests
 
@@ -131,7 +136,7 @@ flutter analyze
 flutter test
 ```
 
-Al cierre de este registro: `flutter analyze` sin issues y **64 tests en
+Al cierre de este registro: `flutter analyze` sin issues y **69 tests en
 verde**.
 
 ## Historial de cambios
@@ -141,7 +146,7 @@ solución) están registrados en [CHANGELOG.md](CHANGELOG.md).
 
 ## Plataformas
 
-- **Linux**: probada (análisis y 64 tests pasan).
+- **Linux**: probada (análisis y 69 tests pasan).
 - **Windows**: sin probar en esta rama.
 - **Android**: no probada todavía.
 - **Web**: no es compatible. El código usa `dart:io`, que no existe en el navegador.

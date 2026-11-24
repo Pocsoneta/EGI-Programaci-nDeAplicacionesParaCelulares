@@ -79,21 +79,23 @@ void main() {
     await tester.pumpAndSettle();
     await esperarBD(tester);
 
-    // Recorrido por la barra inferior y por Servicios del hogar (menu del +).
+    // Recorrido por la barra inferior.
     for (final String seccion in <String>['Mes', 'Grupo', 'Ahorro', 'Inicio']) {
       await tester.tap(find.text(seccion));
       await tester.pumpAndSettle();
       await esperarBD(tester);
     }
 
+    // Menu del "+": quedo solo con gasto e ingreso (los servicios del hogar
+    // ahora son una seccion de la pantalla Mes).
     await tester.tap(find.text('Inicio'));
     await tester.pumpAndSettle();
     await esperarBD(tester);
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Servicios del hogar'));
-    await tester.pumpAndSettle();
-    await esperarBD(tester);
+    expect(find.text('Nuevo gasto'), findsOneWidget);
+    expect(find.text('Nuevo ingreso'), findsOneWidget);
+    expect(find.text('Servicios del hogar'), findsNothing);
     tester.state<NavigatorState>(find.byType(Navigator).first).pop();
     await tester.pumpAndSettle();
 
@@ -103,4 +105,73 @@ void main() {
     await esperarBD(tester);
     expect(find.text('Mi Perfil'), findsOneWidget);
   });
+
+  testWidgets(
+    'Con movimientos cargados no desborda en una pantalla muy angosta',
+    (WidgetTester tester) async {
+      // Mas angosta que un celular chico: reproduce el desborde real de los
+      // items de la lista cuando el monto es largo y la ventana es minima.
+      tester.view.physicalSize = const Size(240, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(const FinanzApp());
+      await tester.pumpAndSettle();
+      await esperarHasta(tester, find.widgetWithText(OutlinedButton, 'Crear cuenta'));
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Crear cuenta'));
+      await tester.pumpAndSettle();
+      await esperarBD(tester);
+      await tester.enterText(find.byType(TextFormField).at(0), 'Chica Angosta');
+      await tester.enterText(find.byType(TextFormField).at(1), 'angosta@test.com');
+      await tester.enterText(find.byType(TextFormField).at(2), '123456');
+      await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
+      await tester.pumpAndSettle();
+      await cerrarCodigoRecuperacion(tester);
+      await esperarHasta(tester, find.text('Inicio'));
+      await tester.pumpAndSettle();
+      await esperarBD(tester);
+
+      // Un ingreso con monto largo: es el caso que desbordaba el item.
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nuevo ingreso'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.byType(TextFormField).at(0), 'Sueldo mensual completo');
+      await tester.enterText(find.byType(TextFormField).at(1), '1500000');
+      await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Guardar'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Guardar'));
+      await tester.pumpAndSettle();
+      await esperarBD(tester);
+      // Deja pasar el SnackBar ("ingreso agregado"): tapa el boton "+".
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+
+      // Y un gasto con monto largo.
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nuevo gasto'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.byType(TextFormField).at(0), 'Supermercado del barrio');
+      await tester.enterText(find.byType(TextFormField).at(1), '1250000');
+      await tester.ensureVisible(
+          find.widgetWithText(ElevatedButton, 'Guardar gasto'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Guardar gasto'));
+      await tester.pumpAndSettle();
+      await esperarBD(tester);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+
+      // Recorrido por las secciones con datos cargados.
+      for (final String seccion in <String>['Mes', 'Grupo', 'Ahorro', 'Inicio']) {
+        await tester.tap(find.text(seccion));
+        await tester.pumpAndSettle();
+        await esperarBD(tester);
+      }
+    },
+  );
 }

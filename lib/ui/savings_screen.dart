@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/meta_ahorro_repository.dart';
 import '../model/model.dart';
+import '../util/tema.dart';
 import '../util/utils.dart';
 
 class SavingsScreen extends StatefulWidget {
@@ -118,14 +119,14 @@ class _SavingsScreenState extends State<SavingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: context.col.fondo,
       appBar: AppBar(
         title: const Text(
           'Metas de Ahorro',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: context.col.superficie,
         elevation: 0,
       ),
       body: FutureBuilder<List<MetaAhorro>>(
@@ -245,7 +246,7 @@ class _SavingsScreenState extends State<SavingsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.col.superficie,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -282,7 +283,7 @@ class _SavingsScreenState extends State<SavingsScreen> {
                     ),
                     Text(
                       meta.categoria,
-                      style: const TextStyle(fontSize: 12, color: Colors.black54),
+                      style: TextStyle(fontSize: 12, color: context.col.subtexto),
                     ),
                   ],
                 ),
@@ -323,7 +324,7 @@ class _SavingsScreenState extends State<SavingsScreen> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: context.col.pista,
               valueColor: AlwaysStoppedAnimation<Color>(
                 completa ? Colors.teal : Colors.indigo,
               ),
@@ -339,7 +340,7 @@ class _SavingsScreenState extends State<SavingsScreen> {
               ),
               Text(
                 'Objetivo: ${formatearMoneda(meta.montoObjetivo)}',
-                style: const TextStyle(fontSize: 12, color: Colors.black54),
+                style: TextStyle(fontSize: 12, color: context.col.subtexto),
               ),
             ],
           ),
@@ -555,6 +556,7 @@ class _DialogoNuevaMetaState extends State<_DialogoNuevaMeta> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _categoria,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Categoría',
                   border: OutlineInputBorder(),
@@ -671,7 +673,7 @@ class _DialogoMovimientoState extends State<_DialogoMovimiento> {
               Text(
                 'Ahorrado: ${formatearMoneda(widget.meta.montoAhorrado)} '
                 'de ${formatearMoneda(widget.meta.montoObjetivo)}',
-                style: const TextStyle(fontSize: 13, color: Colors.black54),
+                style: TextStyle(fontSize: 13, color: context.col.subtexto),
               ),
               const SizedBox(height: 4),
               // Deja claro que el movimiento se refleja en el saldo del inicio.
@@ -679,7 +681,7 @@ class _DialogoMovimientoState extends State<_DialogoMovimiento> {
                 widget.esRetiro
                     ? 'Al retirar, el dinero vuelve a tu saldo del inicio.'
                     : 'Al depositar, el dinero sale de tu saldo del inicio.',
-                style: const TextStyle(fontSize: 12, color: Colors.black45),
+                style: TextStyle(fontSize: 12, color: context.col.subtexto),
               ),
               const SizedBox(height: 12),
               TextFormField(

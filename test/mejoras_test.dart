@@ -73,20 +73,29 @@ Future<void> crearCuenta(
   await esperarBD(tester);
 }
 
-// Los servicios del hogar ya no estan en la barra: se abren desde Inicio
-// como pantalla propia.
+// Los servicios del hogar son ahora una seccion de la pantalla Mes.
 Future<void> abrirHogar(WidgetTester tester) async {
-  await tester.tap(find.text('Inicio'));
+  await tester.tap(find.text('Mes'));
   await tester.pumpAndSettle();
-  await tester.tap(find.byType(FloatingActionButton));
+  await esperarBD(tester);
+  // La seccion queda debajo del desglose: hay que bajar hasta su boton.
+  await tester.ensureVisible(find.byTooltip('Nuevo servicio'));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('Servicios del hogar'));
+}
+
+// Toca un control de la lista de servicios, acercandolo antes al viewport:
+// al aparecer gastos del mes la lista se corre y el boton puede quedar abajo.
+Future<void> tocarServicio(WidgetTester tester, Finder control) async {
+  await tester.ensureVisible(control);
+  await tester.pumpAndSettle();
+  await tester.tap(control);
   await tester.pumpAndSettle();
   await esperarBD(tester);
 }
 
+// Vuelve a Inicio desde la pantalla Mes (ya no hay pantalla propia del hogar).
 Future<void> volverDeHogar(WidgetTester tester) async {
-  tester.state<NavigatorState>(find.byType(Navigator).first).pop();
+  await tester.tap(find.text('Inicio'));
   await tester.pumpAndSettle();
   await esperarBD(tester);
 }
@@ -152,7 +161,7 @@ void main() {
         find.text('Aún no hay servicios cargados. Agregá uno con el botón de arriba.'),
         findsOneWidget,
       );
-      expect(find.text('Total Servicios y Hogar'), findsOneWidget);
+      expect(find.text('Servicios del hogar'), findsOneWidget);
       expect(find.text('\$0'), findsWidgets);
 
       // ---------------------------------------------------------------
@@ -355,7 +364,7 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      await tester.tap(find.byTooltip('Nuevo servicio'));
+      await tocarServicio(tester, find.byTooltip('Nuevo servicio'));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Luz');
@@ -379,7 +388,7 @@ void main() {
       // ---------------------------------------------------------------
       // 2. MARCAR COMO PAGADO SE REFLEJA EN SQLITE
       // ---------------------------------------------------------------
-      await tester.tap(find.byTooltip('Marcar como pagado'));
+      await tocarServicio(tester, find.byTooltip('Marcar como pagado'));
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
@@ -394,7 +403,7 @@ void main() {
       // ---------------------------------------------------------------
       // 3. EL RESUMEN SUMA LOS SERVICIOS REALES
       // ---------------------------------------------------------------
-      await tester.tap(find.byTooltip('Nuevo servicio'));
+      await tocarServicio(tester, find.byTooltip('Nuevo servicio'));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Internet');
@@ -589,7 +598,7 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      await tester.tap(find.byTooltip('Nuevo servicio'));
+      await tocarServicio(tester, find.byTooltip('Nuevo servicio'));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Luz');
@@ -599,14 +608,14 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      await tester.tap(find.byTooltip('Marcar como pagado'));
+      await tocarServicio(tester, find.byTooltip('Marcar como pagado'));
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
       // ---------------------------------------------------------------
       // 2. EDICION: se cambia titulo y monto desde el menu del item
       // ---------------------------------------------------------------
-      await tester.tap(find.byTooltip('Acciones del servicio'));
+      await tocarServicio(tester, find.byTooltip('Acciones del servicio'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Editar'));
       await tester.pumpAndSettle();
@@ -623,7 +632,7 @@ void main() {
 
       expect(find.text('Luz (Edemsa)'), findsOneWidget);
       // El resumen refleja el monto nuevo.
-      expect(find.text('Total Servicios y Hogar'), findsOneWidget);
+      expect(find.text('Servicios del hogar'), findsOneWidget);
       expect(find.text('\$9.500'), findsWidgets);
 
       final List<ServicioHogar> trasEdicion = await tester
@@ -835,7 +844,7 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      await tester.tap(find.byTooltip('Nuevo servicio'));
+      await tocarServicio(tester, find.byTooltip('Nuevo servicio'));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Luz');
@@ -844,7 +853,7 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      await tester.tap(find.byTooltip('Marcar como pagado'));
+      await tocarServicio(tester, find.byTooltip('Marcar como pagado'));
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
@@ -882,7 +891,7 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
-      await tester.tap(find.byTooltip('Marcar como pendiente'));
+      await tocarServicio(tester, find.byTooltip('Marcar como pendiente'));
       await tester.pumpAndSettle();
       await esperarBD(tester);
 
@@ -896,6 +905,71 @@ void main() {
       await tester.pumpAndSettle();
       await esperarBD(tester);
       expect(find.text('\$0'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'Servicios del hogar: el estado sigue al mes que se esta viendo',
+    (WidgetTester tester) async {
+      await crearCuenta(tester, nombre: 'Paula Rios', email: 'paula@test.com');
+
+      await abrirHogar(tester);
+
+      // ---------------------------------------------------------------
+      // 1. ALTA DE UN SERVICIO: en el mes en curso queda pendiente.
+      // ---------------------------------------------------------------
+      await tocarServicio(tester, find.byTooltip('Nuevo servicio'));
+      await tester.enterText(find.byType(TextFormField).at(0), 'Agua');
+      await tester.enterText(find.byType(TextFormField).at(2), '3000');
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Guardar'));
+      await tester.pumpAndSettle();
+      await esperarBD(tester);
+
+      expect(find.byIcon(Icons.schedule), findsOneWidget);
+
+      await tocarServicio(tester, find.byTooltip('Marcar como pagado'));
+      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+
+      // ---------------------------------------------------------------
+      // 2. EN EL MES ANTERIOR NO HAY PAGO: figura pendiente.
+      // ---------------------------------------------------------------
+      await tester.ensureVisible(find.byTooltip('Mes anterior'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Mes anterior'));
+      await tester.pumpAndSettle();
+      await esperarBD(tester);
+
+      expect(find.byIcon(Icons.check_circle), findsNothing);
+      expect(find.byIcon(Icons.schedule), findsOneWidget);
+
+      // Marcarlo ahi crea el gasto FECHADO EN ESE MES.
+      await tocarServicio(tester, find.byTooltip('Marcar como pagado'));
+      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+
+      final List<Gasto> gastos = await tester
+              .runAsync<List<Gasto>>(() => GastoRepository().getGastos()) ??
+          <Gasto>[];
+      expect(gastos, hasLength(2));
+      final DateTime mesAnterior =
+          DateTime(DateTime.now().year, DateTime.now().month - 1, 1);
+      final String prefijo =
+          '${mesAnterior.year}-${mesAnterior.month.toString().padLeft(2, '0')}';
+      expect(
+        gastos.where((Gasto gasto) => gasto.expiration.startsWith(prefijo)),
+        hasLength(1),
+        reason: 'El pago hecho en el mes viejo quedo fechado en otro mes',
+      );
+
+      // ---------------------------------------------------------------
+      // 3. DE VUELTA EN EL MES EN CURSO: sigue pagado.
+      // ---------------------------------------------------------------
+      await tester.ensureVisible(find.byTooltip('Mes siguiente'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Mes siguiente'));
+      await tester.pumpAndSettle();
+      await esperarBD(tester);
+
+      expect(find.byIcon(Icons.check_circle), findsOneWidget);
     },
   );
 

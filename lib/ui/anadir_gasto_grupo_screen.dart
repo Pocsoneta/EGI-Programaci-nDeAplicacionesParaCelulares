@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/grupo_repository.dart';
 import '../model/model.dart';
 import '../util/grupo_calculos.dart';
+import '../util/tema.dart';
 import '../util/utils.dart';
 
 // Alta o edicion de un gasto compartido. Se elige quien puso plata (una o
@@ -20,7 +21,6 @@ class AnadirGastoGrupoScreen extends StatefulWidget {
 
 class _AnadirGastoGrupoScreenState extends State<AnadirGastoGrupoScreen> {
   static const Color _azul = Color(0xFF4C68FF);
-  static const Color _azulOscuro = Color(0xFF1E3C72);
 
   final _formKey = GlobalKey<FormState>();
   final _tituloController = TextEditingController();
@@ -274,7 +274,7 @@ class _AnadirGastoGrupoScreenState extends State<AnadirGastoGrupoScreen> {
   Widget build(BuildContext context) {
     final Map<int, double> iguales = _montosIguales;
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: context.col.fondo,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.close),
@@ -286,7 +286,7 @@ class _AnadirGastoGrupoScreenState extends State<AnadirGastoGrupoScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: context.col.superficie,
         elevation: 0,
       ),
       body: Form(
@@ -322,7 +322,7 @@ class _AnadirGastoGrupoScreenState extends State<AnadirGastoGrupoScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.col.superficie,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -365,7 +365,7 @@ class _AnadirGastoGrupoScreenState extends State<AnadirGastoGrupoScreen> {
                           ),
                         )
                       else
-                        const Text('—', style: TextStyle(color: Colors.black26)),
+                        Text('—', style: TextStyle(color: context.col.sutil)),
                       const SizedBox(width: 8),
                     ],
                   );
@@ -391,8 +391,8 @@ class _AnadirGastoGrupoScreenState extends State<AnadirGastoGrupoScreen> {
             OutlinedButton(
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
-                foregroundColor: _azulOscuro,
-                backgroundColor: Colors.white,
+                foregroundColor: context.col.titulo,
+                backgroundColor: context.col.superficie,
                 side: BorderSide.none,
               ),
               onPressed: _elegirFecha,
@@ -416,7 +416,7 @@ class _AnadirGastoGrupoScreenState extends State<AnadirGastoGrupoScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.col.superficie,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -484,7 +484,7 @@ class _AnadirGastoGrupoScreenState extends State<AnadirGastoGrupoScreen> {
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(
         texto,
-        style: const TextStyle(fontWeight: FontWeight.bold, color: _azulOscuro),
+        style: TextStyle(fontWeight: FontWeight.bold, color: context.col.titulo),
       ),
     );
   }
@@ -493,7 +493,7 @@ class _AnadirGastoGrupoScreenState extends State<AnadirGastoGrupoScreen> {
     return InputDecoration(
       hintText: pista,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: context.col.superficie,
       isDense: true,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

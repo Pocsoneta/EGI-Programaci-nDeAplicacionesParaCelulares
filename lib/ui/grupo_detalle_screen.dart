@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/grupo_repository.dart';
 import '../model/model.dart';
 import '../util/grupo_calculos.dart';
+import '../util/tema.dart';
 import '../util/utils.dart';
 import 'anadir_gasto_grupo_screen.dart';
 import 'reembolsos_screen.dart';
@@ -20,7 +21,6 @@ class GrupoDetalleScreen extends StatefulWidget {
 
 class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
   static const Color _azul = Color(0xFF4C68FF);
-  static const Color _azulOscuro = Color(0xFF1E3C72);
 
   late Future<DatosGrupo> _datosFuture;
   bool _verSaldos = false;
@@ -166,9 +166,9 @@ class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
       builder: (context, snapshot) {
         final DatosGrupo? datos = snapshot.data;
         return Scaffold(
-          backgroundColor: const Color(0xFFF6F8FC),
+          backgroundColor: context.col.fondo,
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: context.col.superficie,
             elevation: 0,
             actions: [
               if (datos != null)
@@ -224,7 +224,7 @@ class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
               const SizedBox(height: 4),
               Text(
                 widget.grupo.nombre,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _azulOscuro),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: context.col.titulo),
               ),
             ],
           ),
@@ -261,12 +261,12 @@ class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
       ),
       const SizedBox(height: 16),
       if (datos.gastos.isEmpty)
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
           child: Text(
             'Aún no hay gastos. Tocá "Añadir gasto" para empezar a registrar y dividir tus gastos.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.black54),
+            style: TextStyle(color: context.col.subtexto),
           ),
         )
       else
@@ -277,7 +277,7 @@ class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
   Widget _estadistica(String etiqueta, String valor) {
     return Column(
       children: [
-        Text(etiqueta, style: const TextStyle(color: Colors.black45, fontSize: 12)),
+        Text(etiqueta, style: TextStyle(color: context.col.subtexto, fontSize: 12)),
         const SizedBox(height: 4),
         Text(valor, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
       ],
@@ -297,7 +297,7 @@ class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.col.superficie,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -312,7 +312,7 @@ class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
                   const SizedBox(height: 2),
                   Text(
                     '${formatearFecha(gasto.fecha)} · $detalle',
-                    style: const TextStyle(color: Colors.black45, fontSize: 12),
+                    style: TextStyle(color: context.col.subtexto, fontSize: 12),
                   ),
                 ],
               ),
@@ -359,10 +359,10 @@ class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
     return [
       Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(color: context.col.superficie, borderRadius: BorderRadius.circular(16)),
         child: Column(
           children: [
-            Text(titulo, style: const TextStyle(color: Colors.black54)),
+            Text(titulo, style: TextStyle(color: context.col.subtexto)),
             const SizedBox(height: 4),
             Text(
               saldo.abs() < 0.005 ? 'Sin deudas' : formatearMonedaExacta(saldo.abs()),
@@ -378,7 +378,7 @@ class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
         label: const Text('Ver reembolsos'),
       ),
       const SizedBox(height: 20),
-      const Text('Saldos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _azulOscuro)),
+      Text('Saldos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.col.titulo)),
       const SizedBox(height: 8),
       ...datos.participantes.map((Participante p) => _filaSaldo(datos, p)),
     ];
@@ -400,7 +400,7 @@ class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: context.col.superficie, borderRadius: BorderRadius.circular(12)),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
@@ -418,10 +418,10 @@ class _GrupoDetalleScreenState extends State<GrupoDetalleScreen> {
           subtitle: p.esYo ? const Text('Personal', style: TextStyle(color: _azul, fontSize: 12)) : null,
           trailing: Text(monto, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
           children: deudas.isEmpty
-              ? const [
+              ? [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('Sin deudas pendientes.', style: TextStyle(color: Colors.black54)),
+                    child: Text('Sin deudas pendientes.', style: TextStyle(color: context.col.subtexto)),
                   ),
                 ]
               : deudas.map((Reembolso r) => _lineaDeuda(datos, p, r)).toList(),

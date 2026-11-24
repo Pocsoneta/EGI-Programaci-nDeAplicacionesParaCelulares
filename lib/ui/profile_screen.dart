@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/dbhelper.dart';
 import '../model/model.dart';
 import '../data/usuario_repository.dart';
+import '../util/tema.dart';
 import 'codigo_recuperacion_dialog.dart';
 import 'login_screen.dart';
 import 'usuario_screen.dart';
@@ -173,7 +174,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.col.superficie,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -188,7 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _tieneCodigo
                 ? 'Tu cuenta tiene un código de recuperación. Por seguridad no se vuelve a mostrar: si lo perdiste, generá uno nuevo.'
                 : 'Tu cuenta no tiene código de recuperación. Generalo y guardalo: se muestra una sola vez.',
-            style: const TextStyle(color: Colors.black54, fontSize: 13),
+            style: TextStyle(color: context.col.subtexto, fontSize: 13),
           ),
           const SizedBox(height: 12),
           if (_tieneCodigo)
@@ -245,14 +246,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: context.col.fondo,
       appBar: AppBar(
         title: const Text(
           'Mi Perfil',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: context.col.superficie,
         elevation: 0,
       ),
       body: _buildContenido(),
@@ -265,13 +266,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     if (_usuario == null) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Text(
             'No se encontro la cuenta activa.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.black54),
+            style: TextStyle(color: context.col.subtexto),
           ),
         ),
       );
@@ -290,7 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.col.superficie,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
@@ -315,7 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 4),
                 Text(
                   _usuario!.email,
-                  style: const TextStyle(color: Colors.black54, fontSize: 14),
+                  style: TextStyle(color: context.col.subtexto, fontSize: 14),
                 ),
               ],
             ),
@@ -326,7 +327,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.col.superficie,
               borderRadius: BorderRadius.circular(16),
             ),
             child: _editando ? _buildFormularioEdicion() : _buildSoloLectura(),

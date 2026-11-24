@@ -3,6 +3,7 @@ import '../data/contrasena.dart';
 import '../data/dbhelper.dart';
 import '../model/model.dart';
 import '../data/usuario_repository.dart';
+import '../util/tema.dart';
 import 'auth_widgets.dart';
 import 'recuperar_contrasena_screen.dart';
 import 'usuario_screen.dart';
@@ -74,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: context.col.fondo,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -97,6 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         decoration: decoracionAuth(
+                          context: context,
                           etiqueta: 'Correo',
                           icono: Icons.mail_outline,
                         ),
@@ -109,6 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _passwordController,
                         obscureText: _ocultarPassword,
                         decoration: decoracionAuth(
+                          context: context,
                           etiqueta: 'Contraseña',
                           icono: Icons.lock_outline,
                           sufijo: IconButton(

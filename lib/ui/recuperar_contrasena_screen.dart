@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/usuario_repository.dart';
+import '../util/tema.dart';
 import 'auth_widgets.dart';
 
 // Restablece la contrasena con el correo y el codigo de recuperacion.
@@ -60,7 +61,7 @@ class _RecuperarContrasenaScreenState extends State<RecuperarContrasenaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: context.col.fondo,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -83,6 +84,7 @@ class _RecuperarContrasenaScreenState extends State<RecuperarContrasenaScreen> {
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         decoration: decoracionAuth(
+                          context: context,
                           etiqueta: 'Correo',
                           icono: Icons.mail_outline,
                         ),
@@ -95,6 +97,7 @@ class _RecuperarContrasenaScreenState extends State<RecuperarContrasenaScreen> {
                         controller: _codigoController,
                         textCapitalization: TextCapitalization.characters,
                         decoration: decoracionAuth(
+                          context: context,
                           etiqueta: 'Código de recuperación',
                           icono: Icons.confirmation_number_outlined,
                         ),
@@ -107,6 +110,7 @@ class _RecuperarContrasenaScreenState extends State<RecuperarContrasenaScreen> {
                         controller: _passwordController,
                         obscureText: _ocultarPassword,
                         decoration: decoracionAuth(
+                          context: context,
                           etiqueta: 'Nueva contraseña',
                           icono: Icons.lock_outline,
                           sufijo: IconButton(
@@ -126,6 +130,7 @@ class _RecuperarContrasenaScreenState extends State<RecuperarContrasenaScreen> {
                         controller: _repetirController,
                         obscureText: _ocultarPassword,
                         decoration: decoracionAuth(
+                          context: context,
                           etiqueta: 'Repetir contraseña',
                           icono: Icons.lock_outline,
                         ),
@@ -153,10 +158,10 @@ class _RecuperarContrasenaScreenState extends State<RecuperarContrasenaScreen> {
                         onPressed: () => Navigator.of(context).pop(),
                         child: const Text('Volver'),
                       ),
-                      const Text(
+                      Text(
                         'Si tu cuenta no tiene código, iniciá sesión y generalo desde Mi perfil.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.black45, fontSize: 12),
+                        style: TextStyle(color: context.col.subtexto, fontSize: 12),
                       ),
                     ],
                   ),

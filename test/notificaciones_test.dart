@@ -184,6 +184,7 @@ void main() {
       // Con la sesion guardada, la app entra directo al inicio con los datos.
       await tester.pumpWidget(const FinanzApp());
       await tester.pumpAndSettle();
+      await esperarHasta(tester, find.byIcon(Icons.notifications_none));
       await esperarBD(tester);
 
       await tester.tap(find.byIcon(Icons.notifications_none));

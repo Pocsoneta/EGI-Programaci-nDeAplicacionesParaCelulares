@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/grupo_repository.dart';
 import '../model/model.dart';
+import '../util/tema.dart';
 import '../util/utils.dart';
 import 'crear_grupo_screen.dart';
 import 'grupo_detalle_screen.dart';
@@ -17,7 +18,6 @@ class GroupsScreen extends StatefulWidget {
 
 class _GroupsScreenState extends State<GroupsScreen> {
   static const Color _azul = Color(0xFF4C68FF);
-  static const Color _azulOscuro = Color(0xFF1E3C72);
 
   late Future<List<DatosGrupo>> _gruposFuture;
 
@@ -70,14 +70,14 @@ class _GroupsScreenState extends State<GroupsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: context.col.fondo,
       appBar: AppBar(
         title: const Text(
           'Grupos',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: context.col.superficie,
         elevation: 0,
         actions: [
           IconButton(
@@ -92,13 +92,13 @@ class _GroupsScreenState extends State<GroupsScreen> {
         builder: (context, snapshot) {
           final List<DatosGrupo> grupos = snapshot.data ?? <DatosGrupo>[];
           if (grupos.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
                   'Aún no tenés grupos. Creá uno con el botón de arriba.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.black54),
+                  style: TextStyle(color: context.col.subtexto),
                 ),
               ),
             );
@@ -130,7 +130,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.col.superficie,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -161,34 +161,40 @@ class _GroupsScreenState extends State<GroupsScreen> {
                       datos.grupo.nombre,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
-                        color: _azulOscuro,
+                        color: context.col.titulo,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '$cantidad participantes · ${datos.gastos.length} gastos',
-                      style: const TextStyle(color: Colors.black45, fontSize: 12),
+                      style: TextStyle(color: context.col.subtexto, fontSize: 12),
                     ),
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(estado, style: const TextStyle(color: Colors.black45, fontSize: 11)),
-                  if (monto.isNotEmpty)
-                    Text(
-                      monto,
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                ],
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(estado, style: TextStyle(color: context.col.subtexto, fontSize: 11)),
+                      if (monto.isNotEmpty)
+                        Text(
+                          monto,
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),

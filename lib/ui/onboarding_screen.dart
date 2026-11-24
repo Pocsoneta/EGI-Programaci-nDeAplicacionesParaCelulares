@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../util/tema.dart';
+
 // Pantallas de introduccion que se muestran solo la primera vez que se abre
 // la app. Al terminar (o al omitir) se llama a onTerminar.
 class OnboardingScreen extends StatefulWidget {
@@ -90,7 +92,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.col.superficie,
       body: SafeArea(
         child: Column(
           children: [
@@ -98,7 +100,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               alignment: Alignment.topRight,
               child: TextButton(
                 onPressed: widget.onTerminar,
-                child: const Text('Omitir', style: TextStyle(color: Colors.black54)),
+                child: Text('Omitir', style: TextStyle(color: context.col.subtexto)),
               ),
             ),
             Expanded(
@@ -156,17 +158,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             diapositiva.titulo,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: _azulOscuro,
+              color: context.col.titulo,
             ),
           ),
           const SizedBox(height: 12),
           Text(
             diapositiva.texto,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 15, color: Colors.black54, height: 1.4),
+            style: TextStyle(fontSize: 15, color: context.col.subtexto, height: 1.4),
           ),
         ],
       ),
@@ -264,7 +266,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           width: activa ? 24 : 8,
           height: 8,
           decoration: BoxDecoration(
-            color: activa ? _azul : Colors.black26,
+            color: activa ? _azul : context.col.sutil,
             borderRadius: BorderRadius.circular(4),
           ),
         );

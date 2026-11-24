@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../util/tema.dart';
+
 // Encabezado con degradado azul que comparten el login y el registro.
 class CabeceraAuth extends StatelessWidget {
   final IconData icono;
@@ -69,7 +71,7 @@ class TarjetaAuth extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.col.superficie,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -86,6 +88,7 @@ class TarjetaAuth extends StatelessWidget {
 
 // Estilo comun de los campos de texto de login y registro.
 InputDecoration decoracionAuth({
+  required BuildContext context,
   required String etiqueta,
   required IconData icono,
   Widget? sufijo,
@@ -95,7 +98,7 @@ InputDecoration decoracionAuth({
     prefixIcon: Icon(icono),
     suffixIcon: sufijo,
     filled: true,
-    fillColor: const Color(0xFFF6F8FC),
+    fillColor: context.col.fondo,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
       borderSide: BorderSide.none,

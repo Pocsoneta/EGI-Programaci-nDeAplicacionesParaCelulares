@@ -345,7 +345,10 @@ class ServicioHogar {
   String titulo; // Nombre del servicio
   String detalle; // Detalle (ej. "Vence el 22/09 • Pendiente")
   double monto; // Monto del servicio
-  int pagado; // 1 si esta pagado, 0 si esta pendiente
+  // 1 si esta pagado en el mes en curso, 0 si sigue pendiente. Es el estado
+  // que usan las notificaciones; en pantalla el estado del mes que se este
+  // viendo se calcula desde los gastos (MonthScreen).
+  int pagado;
   // Id del gasto que se creo al marcar el servicio como pagado (0 si no
   // tiene): permite reflejar el pago en gastos y deshacerlo al desmarcar.
   int gastoId;

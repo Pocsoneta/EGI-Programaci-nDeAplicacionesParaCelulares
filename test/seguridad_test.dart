@@ -243,6 +243,7 @@ void main() {
       // Una key distinta fuerza un estado nuevo (como un arranque real).
       await tester.pumpWidget(const FinanzApp(key: ValueKey('arranque-2')));
       await tester.pumpAndSettle();
+      await esperarHasta(tester, find.text('Saldo total'));
       await esperarBD(tester);
 
       expect(find.text('Iniciar sesión'), findsNothing);
@@ -269,6 +270,7 @@ void main() {
       // ---------------------------------------------------------------
       await tester.pumpWidget(const FinanzApp(key: ValueKey('arranque-3')));
       await tester.pumpAndSettle();
+      await esperarHasta(tester, find.widgetWithText(ElevatedButton, 'Iniciar sesión'));
       await esperarBD(tester);
 
       expect(find.text('Iniciar sesión'), findsOneWidget);

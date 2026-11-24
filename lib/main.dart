@@ -6,6 +6,7 @@ import 'dart:io';
 import 'data/dbhelper.dart';
 import 'model/model.dart';
 import 'data/usuario_repository.dart';
+import 'util/tema.dart';
 import 'ui/login_screen.dart';
 import 'ui/main_nav_screen.dart';
 import 'ui/onboarding_screen.dart';
@@ -37,6 +38,9 @@ Future<void> main() async {
   } else {
     await DbHelper().setCurrentUser(usuarioPrueba.id ?? 1);
   }
+
+  // Se recuerda la preferencia de tema (claro/oscuro) antes del primer frame.
+  await TemaControl.instancia.cargar();
 
   runApp(const FinanzApp());
 }
@@ -131,11 +135,18 @@ class _FinanzAppState extends State<FinanzApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'FinanzApp',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(fontFamily: 'Roboto', useMaterial3: true),
-      home: _pantallaInicial(),
+    // La app escucha al control del tema: al alternarlo se reconstruye todo
+    // el MaterialApp con la paleta nueva.
+    return AnimatedBuilder(
+      animation: TemaControl.instancia,
+      builder: (context, _) => MaterialApp(
+        title: 'FinanzApp',
+        debugShowCheckedModeBanner: false,
+        theme: temaClaro(),
+        darkTheme: temaOscuro(),
+        themeMode: TemaControl.instancia.modo,
+        home: _pantallaInicial(),
+      ),
     );
   }
 
@@ -143,7 +154,7 @@ class _FinanzAppState extends State<FinanzApp> {
     // Mientras se decide la pantalla inicial (unos milisegundos) se muestra
     // un fondo vacio: sin animaciones infinitas, para que los tests asienten.
     if (_cargando) {
-      return const Scaffold(backgroundColor: Color(0xFFF6F8FC));
+      return const Scaffold();
     }
     if (_autenticado) {
       return MainNavScreen(onCerrarSesion: _cerrarSesion);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/gasto_repository.dart';
 import '../model/model.dart';
+import '../util/tema.dart';
 import '../util/utils.dart';
 
 // Hoja de alta (y edicion) de gastos.
@@ -132,7 +133,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: context.col.fondo,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -179,6 +180,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _categoria,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Categoría',
                   border: OutlineInputBorder(),

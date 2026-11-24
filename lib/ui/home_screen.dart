@@ -4,6 +4,7 @@ import '../data/gasto_repository.dart';
 import '../data/ingreso_repository.dart';
 import '../data/meta_ahorro_repository.dart';
 import '../model/model.dart';
+import '../util/tema.dart';
 import '../util/utils.dart';
 import 'add_expense_sheet.dart';
 import 'dialogo_ingreso.dart';
@@ -233,15 +234,21 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Gastos del mes',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  const Flexible(
+                    child: Text(
+                      'Gastos del mes',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Flexible(
                     child: Text(
                       etiquetaMes(hoy),
+                      textAlign: TextAlign.right,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(color: Colors.white70, fontSize: 12),
                     ),
@@ -359,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.col.superficie,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -369,9 +376,12 @@ class _HomeScreenState extends State<HomeScreen> {
             children: const [
               Icon(Icons.trending_up, color: Colors.green),
               SizedBox(width: 8),
-              Text(
-                'Ingresos del mes',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Expanded(
+                child: Text(
+                  'Ingresos del mes',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -405,6 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(width: 12),
           Expanded(
+            flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -414,17 +425,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 Text(
                   formatearFecha(ingreso.fecha),
-                  style: const TextStyle(color: Colors.black54, fontSize: 12),
+                  style: TextStyle(color: context.col.subtexto, fontSize: 12),
                 ),
               ],
             ),
           ),
-          Text(
-            '+${formatearMoneda(ingreso.monto)}',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: Colors.green,
+          Expanded(
+            flex: 2,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                '+${formatearMoneda(ingreso.monto)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.green,
+                ),
+              ),
             ),
           ),
           PopupMenuButton<String>(
@@ -536,7 +554,7 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.col.superficie,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -558,6 +576,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(width: 12),
           Expanded(
+            flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -567,14 +586,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 Text(
                   '${gasto.categoria} • ${formatearFecha(gasto.expiration)}',
-                  style: const TextStyle(color: Colors.black54, fontSize: 12),
+                  style: TextStyle(color: context.col.subtexto, fontSize: 12),
                 ),
               ],
             ),
           ),
-          Text(
-            formatearMoneda(gasto.monto),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          Expanded(
+            flex: 2,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                formatearMoneda(gasto.monto),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
           ),
           PopupMenuButton<String>(
             padding: EdgeInsets.zero,
@@ -596,7 +622,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  static Widget _buildMetricCard({
+  Widget _buildMetricCard({
     required IconData icon,
     required String label,
     required String amount,
@@ -606,7 +632,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.col.superficie,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(

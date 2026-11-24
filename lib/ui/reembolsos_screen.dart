@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../data/grupo_repository.dart';
 import '../model/model.dart';
 import '../util/grupo_calculos.dart';
+import '../util/tema.dart';
 import '../util/utils.dart';
 
 // Reembolsos del grupo, separados en lo que te involucra (te deben / debés) y
@@ -20,7 +21,6 @@ class ReembolsosScreen extends StatefulWidget {
 
 class _ReembolsosScreenState extends State<ReembolsosScreen> {
   static const Color _azul = Color(0xFF4C68FF);
-  static const Color _azulOscuro = Color(0xFF1E3C72);
 
   late Future<DatosGrupo> _datosFuture;
 
@@ -75,11 +75,11 @@ class _ReembolsosScreenState extends State<ReembolsosScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: context.col.fondo,
       appBar: AppBar(
         title: const Text('Reembolsos', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: context.col.superficie,
         elevation: 0,
       ),
       body: FutureBuilder<DatosGrupo>(
@@ -110,12 +110,12 @@ class _ReembolsosScreenState extends State<ReembolsosScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         if (pendientes.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
             child: Text(
               'No hay reembolsos pendientes. Todo está saldado.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black54),
+              style: TextStyle(color: context.col.subtexto),
             ),
           ),
         if (cobros.isNotEmpty) ...[
@@ -133,7 +133,7 @@ class _ReembolsosScreenState extends State<ReembolsosScreen> {
         const SizedBox(height: 20),
         _titulo('Pagos registrados'),
         if (datos.pagos.isEmpty)
-          const Text('Todavía no registraste pagos.', style: TextStyle(color: Colors.black54))
+          Text('Todavía no registraste pagos.', style: TextStyle(color: context.col.subtexto))
         else
           ...datos.pagos.map((PagoGrupo pago) => _filaPago(datos, pago)),
       ],
@@ -145,7 +145,7 @@ class _ReembolsosScreenState extends State<ReembolsosScreen> {
       padding: const EdgeInsets.only(top: 4, bottom: 10),
       child: Text(
         texto,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _azulOscuro),
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.col.titulo),
       ),
     );
   }
@@ -157,7 +157,7 @@ class _ReembolsosScreenState extends State<ReembolsosScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.col.superficie,
         borderRadius: BorderRadius.circular(16),
         border: (meCobran || yoDebo)
             ? Border.all(color: _azul.withAlpha(90), width: 1.5)
@@ -167,16 +167,16 @@ class _ReembolsosScreenState extends State<ReembolsosScreen> {
         children: [
           Text.rich(
             TextSpan(
-              style: const TextStyle(fontSize: 14, color: Colors.black54),
+              style: TextStyle(fontSize: 14, color: context.col.subtexto),
               children: [
                 TextSpan(
                   text: datos.nombreDe(r.deudorId),
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: _azulOscuro),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: context.col.titulo),
                 ),
                 const TextSpan(text: ' debe a '),
                 TextSpan(
                   text: datos.nombreDe(r.acreedorId),
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: _azulOscuro),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: context.col.titulo),
                 ),
               ],
             ),
@@ -185,7 +185,7 @@ class _ReembolsosScreenState extends State<ReembolsosScreen> {
           const SizedBox(height: 6),
           Text(
             formatearMonedaExacta(r.monto),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _azulOscuro),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: context.col.titulo),
           ),
           const SizedBox(height: 12),
           Row(
@@ -219,7 +219,7 @@ class _ReembolsosScreenState extends State<ReembolsosScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.fromLTRB(14, 6, 4, 6),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: context.col.superficie, borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
           Expanded(
@@ -234,7 +234,7 @@ class _ReembolsosScreenState extends State<ReembolsosScreen> {
           ),
           IconButton(
             tooltip: 'Quitar pago',
-            icon: const Icon(Icons.undo, color: Colors.black38),
+            icon: Icon(Icons.undo, color: context.col.sutil),
             onPressed: () => _quitarPago(pago),
           ),
         ],

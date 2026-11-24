@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'savings_screen.dart';
 import 'groups_screen.dart';
-import 'household_screen.dart';
 import 'month_screen.dart';
 import 'notifications_screen.dart';
 import 'add_expense_sheet.dart';
@@ -14,6 +13,7 @@ import '../data/servicio_hogar_repository.dart';
 import '../data/usuario_repository.dart';
 import '../model/model.dart';
 import '../util/notificaciones.dart';
+import '../util/tema.dart';
 import '../util/utils.dart';
 
 class MainNavScreen extends StatefulWidget {
@@ -28,7 +28,6 @@ class MainNavScreen extends StatefulWidget {
 
 class _MainNavScreenState extends State<MainNavScreen> {
   static const Color _azul = Color(0xFF4C68FF);
-  static const Color _azulOscuro = Color(0xFF1E3C72);
 
   int _selectedIndex = 0;
 
@@ -71,12 +70,15 @@ class _MainNavScreenState extends State<MainNavScreen> {
   // Las vistas se construyen dinamicamente para permitir recargas de datos.
   List<Widget> get _views => [
     HomeScreen(),
-    MonthScreen(),
+    // Al cambiar un servicio del hogar se refresca la cabecera: pagar crea o
+    // quita un gasto y eso mueve las alertas y el saldo del inicio.
+    MonthScreen(onServiciosCambiados: _actualizarCabecera),
     GroupsScreen(),
     SavingsScreen(),
   ];
 
-  // Menu del boton "+": gasto, ingreso o servicios del hogar.
+  // Menu del boton "+": gasto o ingreso. Los servicios del hogar se gestionan
+  // desde la seccion de la pantalla Mes.
   Future<void> _openAddMenu() async {
     final String? opcion = await showModalBottomSheet<String>(
       context: context,
@@ -87,7 +89,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
           children: [
             _opcionMenu(context, 'gasto', Icons.receipt_long_outlined, 'Nuevo gasto'),
             _opcionMenu(context, 'ingreso', Icons.trending_up, 'Nuevo ingreso'),
-            _opcionMenu(context, 'hogar', Icons.cottage_outlined, 'Servicios del hogar'),
             const SizedBox(height: 8),
           ],
         ),
@@ -100,8 +101,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
       await _openAddExpense();
     } else if (opcion == 'ingreso') {
       await _openAddIngreso();
-    } else if (opcion == 'hogar') {
-      await _openHousehold();
     }
   }
 
@@ -123,19 +122,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
       builder: (context) => const DialogoIngreso(),
     );
     if (guardado == true && mounted) {
-      setState(() {});
-      _actualizarCabecera();
-    }
-  }
-
-  // Servicios del hogar: se abren como pantalla propia desde el menu del "+".
-  // Al volver se recarga el inicio (pagar un servicio crea o quita un gasto)
-  // y se refresca la cabecera (alertas y avatar).
-  Future<void> _openHousehold() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const HouseholdScreen()),
-    );
-    if (mounted) {
       setState(() {});
       _actualizarCabecera();
     }
@@ -187,7 +173,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
       icon: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Icon(Icons.notifications_none, color: _azulOscuro, size: 26),
+          Icon(Icons.notifications_none, color: context.col.titulo, size: 26),
           if (_pendientes > 0)
             Positioned(
               right: -1,
@@ -198,11 +184,26 @@ class _MainNavScreenState extends State<MainNavScreen> {
                 decoration: BoxDecoration(
                   color: Colors.redAccent,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
+                  border: Border.all(color: context.col.superficie, width: 1.5),
                 ),
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  // Enciende o apaga el modo oscuro. Al alternar, el MaterialApp se
+  // reconstruye con la paleta nueva (ver main.dart).
+  Widget _botonTema() {
+    final bool oscuro = TemaControl.instancia.oscuro;
+    return IconButton(
+      tooltip: oscuro ? 'Modo claro' : 'Modo oscuro',
+      onPressed: () => TemaControl.instancia.alternar(),
+      icon: Icon(
+        oscuro ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+        color: context.col.titulo,
+        size: 24,
       ),
     );
   }
@@ -230,7 +231,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
   // Elemento de la barra inferior: icono y etiqueta, resaltado si esta activo.
   Widget _itemNavegacion(int indice, IconData icono, IconData iconoActivo, String etiqueta) {
     final bool activo = _selectedIndex == indice;
-    final Color color = activo ? _azul : Colors.grey;
+    final Color color = activo ? _azul : context.col.gris;
     return Expanded(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -263,10 +264,11 @@ class _MainNavScreenState extends State<MainNavScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppColores col = context.col;
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: col.fondo,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF6F8FC),
+        backgroundColor: col.fondo,
         elevation: 0,
         scrolledUnderElevation: 0,
         titleSpacing: 20,
@@ -274,10 +276,10 @@ class _MainNavScreenState extends State<MainNavScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'FinanzApp',
               style: TextStyle(
-                color: _azulOscuro,
+                color: col.titulo,
                 fontWeight: FontWeight.w800,
                 fontSize: 20,
                 letterSpacing: -0.3,
@@ -285,11 +287,12 @@ class _MainNavScreenState extends State<MainNavScreen> {
             ),
             Text(
               _monthLabel,
-              style: const TextStyle(color: Colors.black45, fontSize: 12.5),
+              style: TextStyle(color: col.subtexto, fontSize: 12.5),
             ),
           ],
         ),
         actions: [
+          _botonTema(),
           _botonNotificaciones(),
           _buildAvatar(),
           const SizedBox(width: 12),
@@ -307,7 +310,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
-        color: Colors.white,
+        color: col.superficie,
         height: 60,
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Row(

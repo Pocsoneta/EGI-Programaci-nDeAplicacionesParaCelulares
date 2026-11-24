@@ -4,6 +4,7 @@ import '../data/dbhelper.dart';
 import '../data/grupo_repository.dart';
 import '../data/usuario_repository.dart';
 import '../model/model.dart';
+import '../util/tema.dart';
 
 // Alta de un grupo: título con emoji y los participantes. Tu nombre va primero
 // y queda marcado como "Personal". Los demás son solo nombres.
@@ -16,7 +17,6 @@ class CrearGrupoScreen extends StatefulWidget {
 
 class _CrearGrupoScreenState extends State<CrearGrupoScreen> {
   static const Color _azul = Color(0xFF4C68FF);
-  static const Color _azulOscuro = Color(0xFF1E3C72);
   static const List<String> _emojis = <String>[
     '🧾', '🏝️', '🍖', '⚽', '✈️', '🎉', '🏠', '🍕', '🎮', '🚗',
   ];
@@ -93,11 +93,11 @@ class _CrearGrupoScreenState extends State<CrearGrupoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: context.col.fondo,
       appBar: AppBar(
         title: const Text('Nuevo grupo', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: context.col.superficie,
         elevation: 0,
       ),
       body: Form(
@@ -105,7 +105,7 @@ class _CrearGrupoScreenState extends State<CrearGrupoScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const Text('Título', style: TextStyle(fontWeight: FontWeight.bold, color: _azulOscuro)),
+            Text('Título', style: TextStyle(fontWeight: FontWeight.bold, color: context.col.titulo)),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -115,7 +115,7 @@ class _CrearGrupoScreenState extends State<CrearGrupoScreen> {
                     decoration: InputDecoration(
                       hintText: 'Por ejemplo, Viaje a la costa',
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: context.col.superficie,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -142,13 +142,13 @@ class _CrearGrupoScreenState extends State<CrearGrupoScreen> {
                   .toList(),
             ),
             const SizedBox(height: 24),
-            const Text('Participantes',
-                style: TextStyle(fontWeight: FontWeight.bold, color: _azulOscuro)),
+            Text('Participantes',
+                style: TextStyle(fontWeight: FontWeight.bold, color: context.col.titulo)),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.col.superficie,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -191,7 +191,7 @@ class _CrearGrupoScreenState extends State<CrearGrupoScreen> {
                         ),
                         if (_nombres.length > 1)
                           IconButton(
-                            icon: const Icon(Icons.cancel_outlined, color: Colors.black38),
+                            icon: Icon(Icons.cancel_outlined, color: context.col.sutil),
                             tooltip: 'Quitar participante',
                             onPressed: () => _quitarParticipante(i),
                           ),
